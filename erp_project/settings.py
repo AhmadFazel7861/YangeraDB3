@@ -1,7 +1,7 @@
 """ - ERP System Settings
-from decouple import config
 Designer: YangEra
 """
+from decouple import config
 
 from pathlib import Path
 import os
