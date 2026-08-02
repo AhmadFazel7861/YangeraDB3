@@ -1,4 +1,5 @@
 """ - ERP System Settings
+from decouple import config
 Designer: YangEra
 """
 
@@ -17,9 +18,9 @@ else:
 
 SECRET_KEY = 'django-erp-fayaz-secret-key-change-in-production-xyz123'
 
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '172.20.10.6']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
 
 
