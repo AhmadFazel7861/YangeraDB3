@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-workspace"></i></span>
+    {{ page_title }}
+  </h1>
+  <a href="{% url 'suppliers:supplier_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-person-workspace"></i>
+          </span>
+          اطلاعات تامین‌کننده
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.name.label }} *</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="erp-field-error">{{ form.name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.company.label }}</label>
+              {{ form.company }}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.phone.label }}</label>
+              {{ form.phone }}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.phone2.label }}</label>
+              {{ form.phone2 }}
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.address.label }}</label>
+              {{ form.address }}
+            </div>
+            <div class="col-12">
+            <label class="erp-label">بدهی اولیه ما به تامین‌کننده</label>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <div style="position:relative;">
+                  <span style="
+                    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+                    font-size:13px; color:var(--text-muted); font-weight:600; pointer-events:none;">
+                    ؋
+                  </span>
+                  {{ form.opening_balance }}
+                </div>
+                {% if form.opening_balance.errors %}
+                  <div class="erp-field-error">{{ form.opening_balance.errors.0 }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div style="position:relative;">
+                  <span style="
+                    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+                    font-size:13px; color:#16a34a; font-weight:700; pointer-events:none;">
+                    $
+                  </span>
+                  {{ form.opening_balance_usd }}
+                </div>
+                {% if form.opening_balance_usd.errors %}
+                  <div class="erp-field-error">{{ form.opening_balance_usd.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <small style="font-size:11px;color:var(--text-muted);">
+              بدهی موجود قبل از شروع سیستم — هر دو فیلد اختیاری‌اند
+            </small>
+          </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.customer.label }}</label>
+              {{ form.customer }}
+              <small style="font-size:11px;color:var(--text-muted);">
+                اگر این تامین‌کننده همزمان مشتری شماست، حساب مشتری مرتبط را انتخاب کنید
+              </small>
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+            <div class="col-12 d-flex align-items-center gap-2">
+              {{ form.is_active }}
+              <label class="form-check-label" style="font-size:14px;cursor:pointer;">
+                {{ form.is_active.label }}
+              </label>
+            </div>
+          </div>
+          <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn-erp btn-erp-primary">
+              <i class="bi bi-check-circle"></i> {{ action }}
+            </button>
+            {% if action == 'ثبت' %}
+              <button type="submit" name="save_and_new" value="1"
+                      class="btn-erp btn-erp-outline">
+                <i class="bi bi-plus-circle"></i> ثبت و جدید
+              </button>
+            {% endif %}
+            <a href="{% url 'suppliers:supplier_list' %}"
+               class="btn-erp btn-erp-outline">انصراف</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

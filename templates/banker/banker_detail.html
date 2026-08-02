@@ -1,0 +1,326 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ banker.name }}{% endblock %}
+{% block page_title %}{{ banker.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-workspace"></i></span>
+    {{ banker.name }}
+    {% if not banker.is_active %}
+      <span class="erp-badge erp-badge-gray">غیرفعال</span>
+    {% endif %}
+  </h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'banker:transaction_create' %}?banker={{ banker.pk }}"
+       class="btn-erp btn-erp-success">
+      <i class="bi bi-plus-circle"></i> تراکنش جدید
+    </a>
+    <a href="{% url 'banker:ledger' banker.pk %}"
+       class="btn-erp btn-erp-outline">
+      <i class="bi bi-journal-text"></i> دفتر
+    </a>
+    <a href="{% url 'banker:banker_edit' banker.pk %}"
+       class="btn-erp btn-erp-primary">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+    <a href="{% url 'banker:banker_list' %}"
+       class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<!-- Balance Cards -->
+<div class="stats-grid mb-4">
+  <div class="stat-card {% if banker.balance_afn > 0 %}accent-red{% elif banker.balance_afn < 0 %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده AFN</div>
+        <div class="stat-value" style="font-size:22px;direction:ltr;
+          color:{% if banker.balance_afn > 0 %}var(--accent-red){% elif banker.balance_afn < 0 %}var(--accent-green){% else %}var(--text-primary){% endif %};">
+          {{ banker.balance_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {% if banker.balance_afn > 0 %}صراف بدهکار
+          {% elif banker.balance_afn < 0 %}ما بدهکار
+          {% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(59,130,246,.12);color:var(--accent-blue);">
+        <i class="bi bi-wallet2"></i>
+      </div>
+    </div>
+  </div>
+  {% if banker.balance_usd != 0 %}
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده USD</div>
+        <div class="stat-value" style="font-size:22px;direction:ltr;
+          color:{% if banker.balance_usd > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ banker.balance_usd|floatformat:4 }}
+        </div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(16,185,129,.12);color:var(--accent-green);">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if banker.balance_eur != 0 %}
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده EUR</div>
+        <div class="stat-value" style="font-size:22px;direction:ltr;
+          color:{% if banker.balance_eur > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ banker.balance_eur|floatformat:4 }}
+        </div>
+        <div class="stat-sub">یورو</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-currency-euro"></i>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if banker.balance_irr != 0 %}
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده IRR</div>
+        <div class="stat-value" style="font-size:22px;direction:ltr;
+          color:{% if banker.balance_irr > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ banker.balance_irr|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">تومان ایران</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(168,85,247,.12);color:var(--accent-purple);">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع داده شده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ banker.total_given_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع دریافت شده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ banker.total_received_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-arrow-down-circle"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Info -->
+  <div class="col-lg-3">
+    <div class="erp-card mb-4">
+      <div class="erp-card-body" style="padding:20px;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="width:60px;height:60px;border-radius:16px;
+                      background:rgba(59,130,246,.12);
+                      color:var(--accent-blue);
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:24px;font-weight:800;margin:0 auto 12px;">
+            {{ banker.name|first|upper }}
+          </div>
+          <h5 style="font-weight:800;margin-bottom:4px;">{{ banker.name }}</h5>
+        </div>
+        <div style="font-size:13px;">
+          {% if banker.phone %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">تلفن</span>
+            <strong style="direction:ltr;">{{ banker.phone }}</strong>
+          </div>
+          {% endif %}
+          {% if banker.phone2 %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">تلفن ۲</span>
+            <strong style="direction:ltr;">{{ banker.phone2 }}</strong>
+          </div>
+          {% endif %}
+          {% if banker.address %}
+          <div class="divider"></div>
+          <div style="color:var(--text-muted);font-size:12px;">
+            {{ banker.address }}
+          </div>
+          {% endif %}
+          {% if banker.notes %}
+          <div class="mt-2 p-2 rounded"
+               style="background:var(--bg-tertiary);font-size:12px;">
+            {{ banker.notes }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="erp-card">
+      <div class="erp-card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'banker:transaction_create' %}?banker={{ banker.pk }}"
+             class="btn-erp btn-erp-success"
+             style="padding:10px;justify-content:center;">
+            <i class="bi bi-plus-circle"></i> تراکنش جدید
+          </a>
+          <a href="{% url 'banker:ledger' banker.pk %}"
+             class="btn-erp btn-erp-outline"
+             style="padding:10px;justify-content:center;">
+            <i class="bi bi-journal-text"></i> دفتر کامل
+          </a>
+          <a href="{% url 'banker:ledger_print' banker.pk %}"
+             target="_blank"
+             class="btn-erp btn-erp-outline"
+             style="padding:10px;justify-content:center;">
+            <i class="bi bi-printer"></i> پرینت دفتر
+          </a>
+          <form method="post"
+                action="{% url 'banker:recalculate' banker.pk %}"
+                onsubmit="return confirm('موجودی از صفر محاسبه شود؟')">
+            {% csrf_token %}
+            <button class="btn-erp btn-erp-outline w-100"
+                    style="padding:10px;">
+              <i class="bi bi-arrow-clockwise"></i> محاسبه مجدد
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transactions -->
+  <div class="col-lg-9">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-list-ol"></i>
+          </span>
+          تراکنش‌ها
+          <span class="erp-badge erp-badge-gray">{{ total }}</span>
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>نوع</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th>ارز</th>
+              <th style="text-align:left;">معادل AFN</th>
+              <th style="text-align:left;">نرخ</th>
+              <th>مرجع</th>
+              <th>یادداشت</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in transactions %}
+            <tr>
+              <td style="font-size:12px;white-space:nowrap;font-weight:600;">
+                {{ tx.transaction_date }}
+              </td>
+              <td>
+                {% if tx.tx_type == 'given' %}
+                  <span class="erp-badge erp-badge-danger">▲ داده شده</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-success">▼ دریافت</span>
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {% if tx.tx_type == 'given' %}
+                  <span style="color:var(--accent-red);">
+                    +{{ tx.amount|floatformat:4 }}
+                  </span>
+                {% else %}
+                  <span style="color:var(--accent-green);">
+                    -{{ tx.amount|floatformat:4 }}
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="erp-badge erp-badge-info">
+                  {{ tx.currency }}
+                </span>
+              </td>
+              <td style="text-align:left;direction:ltr;font-size:12px;">
+                {{ tx.amount_afn|floatformat:0|intcomma }} ؋
+              </td>
+              <td style="text-align:left;direction:ltr;font-size:12px;
+                         color:var(--text-muted);">
+                {% if tx.currency == 'USD' %}
+                  {{ tx.exchange_rate|floatformat:4 }}
+                {% else %}—{% endif %}
+              </td>
+              <td style="font-size:12px;color:var(--text-muted);">
+                {{ tx.reference|default:"—" }}
+              </td>
+              <td style="font-size:12px;color:var(--text-muted);">
+                {{ tx.notes|default:"—"|truncatechars:25 }}
+              </td>
+              <td>
+                <form method="post"
+                      action="{% url 'banker:transaction_delete' tx.pk %}"
+                      onsubmit="return confirm('این تراکنش حذف و موجودی اصلاح شود؟')">
+                  {% csrf_token %}
+                  <button class="btn-erp btn-erp-outline"
+                          style="padding:3px 8px;font-size:11px;color:var(--accent-red);">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-inbox"></i>
+                  <h5>هیچ تراکنشی ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+        {% if transactions.has_other_pages %}
+        <div class="d-flex justify-content-center p-3">
+          {% include 'partials/pagination.html' with page=transactions %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}تاریخچه نرخ ارز{% endblock %}
+{% block page_title %}تاریخچه نرخ ارز{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-clock-history"></i></span>
+    تاریخچه نرخ ارز
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">
+      {{ total }}
+    </span>
+  </h1>
+  <a href="{% url 'currency:rate_create' %}" class="btn-erp btn-erp-primary">
+    <i class="bi bi-plus-circle"></i> ثبت نرخ جدید
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <select name="currency" class="erp-form-control" style="width:160px;"
+              onchange="this.form.submit()">
+        <option value="">همه ارزها</option>
+        {% for cur in currencies %}
+          <option value="{{ cur.pk }}"
+            {% if currency_filter == cur.pk|stringformat:'s' %}
+              selected
+            {% endif %}>
+            {{ cur.code }} — {{ cur.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date_from" value="{{ date_from }}"
+             class="erp-form-control" style="width:150px;direction:ltr;">
+      <input type="date" name="date_to" value="{{ date_to }}"
+             class="erp-form-control" style="width:150px;direction:ltr;">
+      <button type="submit" class="btn-erp btn-erp-primary">فیلتر</button>
+      {% if currency_filter or date_from or date_to %}
+        <a href="{% url 'currency:rate_list' %}"
+           class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>ارز</th>
+            <th style="text-align:left;">نرخ (۱ واحد = ؟ ؋)</th>
+            <th style="text-align:left;">نرخ خرید</th>
+            <th style="text-align:left;">نرخ فروش</th>
+            <th>یادداشت</th>
+            <th>ثبت‌کننده</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rate in rates %}
+          <tr>
+            <td style="font-size:13px;white-space:nowrap;font-weight:600;">
+              {{ rate.rate_date }}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span style="font-size:18px;font-weight:900;
+                             color:var(--accent-blue);direction:ltr;">
+                  {{ rate.currency.symbol }}
+                </span>
+                <div>
+                  <div style="font-weight:700;">{{ rate.currency.code }}</div>
+                  <div style="font-size:11px;color:var(--text-muted);">
+                    {{ rate.currency.name }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:800;
+                       font-size:15px;color:var(--accent-blue);">
+              {{ rate.rate_to_afn|floatformat:4 }} ؋
+            </td>
+            <td style="text-align:left;direction:ltr;
+                       color:var(--accent-green);font-weight:600;">
+              {% if rate.buy_rate %}
+                {{ rate.buy_rate|floatformat:4 }} ؋
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;
+                       color:var(--accent-red);font-weight:600;">
+              {% if rate.sell_rate %}
+                {{ rate.sell_rate|floatformat:4 }} ؋
+              {% else %}—{% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ rate.notes|default:"—" }}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ rate.created_by.display_name|default:"—" }}
+            </td>
+            <td>
+              <a href="{% url 'currency:rate_edit' rate.pk %}"
+                 class="btn-erp btn-erp-outline"
+                 style="padding:4px 10px;font-size:12px;">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-graph-up"></i>
+                <h5>هیچ نرخی ثبت نشده</h5>
+                <a href="{% url 'currency:rate_create' %}"
+                   class="btn-erp btn-erp-primary mt-2">
+                  اولین نرخ را ثبت کنید
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if rates.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      {% include 'partials/pagination.html' with page=rates %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

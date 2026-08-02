@@ -1,0 +1,490 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}خلاصه مالی{% endblock %}
+{% block page_title %}خلاصه مالی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-clipboard-data"></i></span>
+    خلاصه مالی
+  </h1>
+  <button onclick="window.print()" class="btn-erp btn-erp-outline no-print">
+    <i class="bi bi-printer"></i> پرینت
+  </button>
+</div>
+
+{% include 'partials/period_filter.html' with periods=period_choices period=period date_from=date_from date_to=date_to %}
+
+<!-- ═══════════════════════════════════════════════════════════
+     NET BUSINESS CAPITAL — new card, full width, above existing
+     ═══════════════════════════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(16,185,129,.12);color:var(--accent-green);">
+            <i class="bi bi-safe2"></i>
+          </span>
+          خالص سرمایه کسب‌وکار
+        </h5>
+        <span class="erp-badge erp-badge-info">محاسبه همه‌وقته</span>
+      </div>
+      <div class="erp-card-body">
+        <div class="row g-4">
+
+          <!-- ── AFN Column ── -->
+          <div class="col-lg-6">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);
+                        margin-bottom:12px;padding-bottom:8px;
+                        border-bottom:1px solid var(--border-color);">
+              <i class="bi bi-currency-exchange"></i> افغانی (؋)
+            </div>
+            <div style="font-size:14px;">
+
+              <!-- بدهی مشتریان -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(16,185,129,.06);">
+                <span style="color:var(--text-muted);">
+                  <i class="bi bi-people-fill"
+                     style="color:var(--accent-green);margin-left:4px;"></i>
+                  بدهی مشتریان
+                </span>
+                <strong style="direction:ltr;color:var(--accent-green);">
+                  + {{ total_customer_debt|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+              <!-- بدهی تامین‌کنندگان -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(239,68,68,.06);">
+                <span style="color:var(--text-muted);">
+                  <i class="bi bi-truck"
+                     style="color:var(--accent-red);margin-left:4px;"></i>
+                  بدهی به تامین‌کنندگان
+                </span>
+                <strong style="direction:ltr;color:var(--accent-red);">
+                  &minus; {{ total_supplier_debt|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+              <!-- دخل دکان -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(59,130,246,.06);">
+                <span style="color:var(--text-muted);">
+                  <i class="bi bi-cash-stack"
+                     style="color:var(--accent-blue);margin-left:4px;"></i>
+                  دخل دکان (نقد در صندوق)
+                </span>
+                <strong style="direction:ltr;color:var(--accent-blue);">
+                  + {{ dakkan_net_afn|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+              <!-- مانده صرافان -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(20,184,166,.06);">
+                <span style="color:var(--text-muted);">
+                  <i class="bi bi-bank"
+                     style="color:var(--accent-teal, #14b8a6);margin-left:4px;"></i>
+                  مانده صرافان
+                </span>
+                <strong style="direction:ltr;color:var(--accent-teal, #14b8a6);">
+                  + {{ banker_total_afn|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+              <!-- ارزش موجودی انبار -->
+              <div class="d-flex justify-content-between align-items-center mb-3 px-2 py-2 rounded"
+                   style="background:rgba(168,85,247,.06);">
+                <span style="color:var(--text-muted);">
+                  <i class="bi bi-boxes"
+                     style="color:var(--accent-purple);margin-left:4px;"></i>
+                  ارزش موجودی انبار
+                </span>
+                <strong style="direction:ltr;color:var(--accent-purple);">
+                  + {{ stock_value_afn|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+              <!-- divider -->
+              <div style="border-top:2px dashed var(--border-color);margin-bottom:12px;"></div>
+
+              <!-- خالص سرمایه AFN -->
+              <div class="d-flex justify-content-between align-items-center px-3 py-3 rounded"
+                   style="background:{% if net_capital_positive_afn %}rgba(16,185,129,.12){% else %}rgba(239,68,68,.12){% endif %};
+                          font-size:17px;font-weight:800;">
+                <span>خالص سرمایه</span>
+                <strong style="direction:ltr;
+                  color:{% if net_capital_positive_afn %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                  {% if net_capital_positive_afn %}+{% endif %}{{ net_capital_afn|floatformat:0|intcomma }} ؋
+                </strong>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ── USD Column ── -->
+          <div class="col-lg-6">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);
+                        margin-bottom:12px;padding-bottom:8px;
+                        border-bottom:1px solid var(--border-color);
+                        direction:ltr;text-align:left;">
+              <i class="bi bi-currency-dollar"></i> دالر آمریکایی ($)
+            </div>
+            <div style="font-size:14px;direction:ltr;">
+
+              <!-- Customer debt USD -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(16,185,129,.06);">
+                <strong style="color:var(--accent-green);">
+                  + $ {{ total_customer_debt_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;color:var(--text-muted);">
+                  بدهی مشتریان
+                  <i class="bi bi-people-fill"
+                     style="color:var(--accent-green);margin-right:4px;"></i>
+                </span>
+              </div>
+
+              <!-- Supplier debt USD -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(239,68,68,.06);">
+                <strong style="color:var(--accent-red);">
+                  &minus; $ {{ total_supplier_debt_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;color:var(--text-muted);">
+                  بدهی به تامین‌کنندگان
+                  <i class="bi bi-truck"
+                     style="color:var(--accent-red);margin-right:4px;"></i>
+                </span>
+              </div>
+
+              <!-- Dakkan USD -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(59,130,246,.06);">
+                <strong style="color:var(--accent-blue);">
+                  + $ {{ dakkan_net_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;color:var(--text-muted);">
+                  دخل دکان (نقد در صندوق)
+                  <i class="bi bi-cash-stack"
+                     style="color:var(--accent-blue);margin-right:4px;"></i>
+                </span>
+              </div>
+
+              <!-- Banker USD -->
+              <div class="d-flex justify-content-between align-items-center mb-2 px-2 py-2 rounded"
+                   style="background:rgba(20,184,166,.06);">
+                <strong style="color:var(--accent-teal, #14b8a6);">
+                  + $ {{ banker_total_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;color:var(--text-muted);">
+                  مانده صرافان
+                  <i class="bi bi-bank"
+                     style="color:var(--accent-teal, #14b8a6);margin-right:4px;"></i>
+                </span>
+              </div>
+
+              <!-- Stock USD -->
+              <div class="d-flex justify-content-between align-items-center mb-3 px-2 py-2 rounded"
+                   style="background:rgba(168,85,247,.06);">
+                <strong style="color:var(--accent-purple);">
+                  + $ {{ stock_value_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;color:var(--text-muted);">
+                  ارزش موجودی انبار
+                  <i class="bi bi-boxes"
+                     style="color:var(--accent-purple);margin-right:4px;"></i>
+                </span>
+              </div>
+
+              <!-- divider -->
+              <div style="border-top:2px dashed var(--border-color);margin-bottom:12px;"></div>
+
+              <!-- خالص سرمایه USD -->
+              <div class="d-flex justify-content-between align-items-center px-3 py-3 rounded"
+                   style="background:{% if net_capital_positive_usd %}rgba(16,185,129,.12){% else %}rgba(239,68,68,.12){% endif %};
+                          font-size:17px;font-weight:800;">
+                <strong style="direction:ltr;
+                  color:{% if net_capital_positive_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                  {% if net_capital_positive_usd %}+{% endif %}$ {{ net_capital_usd|floatformat:2|intcomma }}
+                </strong>
+                <span style="direction:rtl;">خالص سرمایه</span>
+              </div>
+
+            </div>
+          </div>
+          <!-- ── end USD column ── -->
+
+        </div>
+        <!-- ── end row ── -->
+
+        <!-- footnote -->
+        <div style="font-size:11px;color:var(--text-muted);margin-top:14px;
+                    padding-top:10px;border-top:1px solid var(--border-color);">
+          <i class="bi bi-info-circle"></i>
+          تمام ارقام همه‌وقته‌اند و تحت تأثیر فیلتر تاریخ نیستند —
+          بدهی‌ها، موجودی انبار، دخل دکان و مانده صرافان به‌صورت کل محاسبه می‌شوند.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- Main Summary -->
+<div class="row g-4 mb-4">
+
+  <!-- Income Statement -->
+  <div class="col-lg-6">
+    <div class="erp-card h-100">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+            <i class="bi bi-graph-up"></i>
+          </span>
+          صورت درآمد
+        </h5>
+        <span class="erp-badge erp-badge-info">؋ افغانی</span>
+      </div>
+      <div class="erp-card-body">
+        <div style="font-size:14px;">
+          <div class="d-flex justify-content-between mb-3 pb-3"
+               style="border-bottom:1px solid var(--border-color);">
+            <span>درآمد فروش</span>
+            <strong style="direction:ltr;color:var(--accent-blue);">
+              {{ pl.total_revenue|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--text-muted);">
+              (—) قیمت تمام شده (FIFO)
+            </span>
+            <strong style="direction:ltr;color:var(--accent-orange);">
+              {{ pl.total_cogs|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3 pb-3"
+               style="border-bottom:2px solid var(--border-color);
+                      font-size:15px;">
+            <span style="font-weight:700;">سود ناخالص</span>
+            <strong style="direction:ltr;color:var(--accent-green);">
+              {{ pl.gross_profit|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--text-muted);">
+              (—) مصارف عمومی
+            </span>
+            <strong style="direction:ltr;color:var(--accent-red);">
+              {{ pl.total_expenses|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between p-3 rounded"
+               style="background:{% if pl.is_profit %}rgba(16,185,129,.1){% else %}rgba(239,68,68,.1){% endif %};
+                      font-size:16px;font-weight:800;">
+            <span>سود / زیان خالص</span>
+            <strong style="direction:ltr;
+              color:{% if pl.is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              {% if pl.is_profit %}+{% endif %}{{ pl.net_profit|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+        </div>
+
+        <!-- USD Income Statement -->
+        <div class="divider my-3"></div>
+        <div style="font-size:14px;direction:ltr;">
+          <div style="font-size:12px;color:var(--text-muted);font-weight:700;
+                      margin-bottom:10px;direction:rtl;text-align:right;">
+            <i class="bi bi-currency-dollar"></i> دالر آمریکایی
+          </div>
+          <div class="d-flex justify-content-between mb-3 pb-3"
+               style="border-bottom:1px solid var(--border-color);">
+            <strong style="color:var(--accent-blue);">
+              $ {{ pl.total_revenue_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;">درآمد فروش</span>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <strong style="color:var(--accent-orange);">
+              $ {{ pl.total_cogs_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;color:var(--text-muted);">
+              (—) قیمت تمام شده (FIFO)
+            </span>
+          </div>
+          <div class="d-flex justify-content-between mb-3 pb-3"
+               style="border-bottom:2px solid var(--border-color);
+                      font-size:15px;">
+            <strong style="color:var(--accent-green);">
+              $ {{ pl.gross_profit_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;font-weight:700;">سود ناخالص</span>
+          </div>
+          <div class="d-flex justify-content-between p-3 rounded"
+               style="background:{% if pl.is_profit_usd %}rgba(16,185,129,.1){% else %}rgba(239,68,68,.1){% endif %};
+                      font-size:16px;font-weight:800;">
+            <strong
+              style="color:{% if pl.is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              {% if pl.is_profit_usd %}+{% endif %}$ {{ pl.net_profit_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;">سود / زیان خالص</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:6px;
+                       direction:rtl;text-align:right;">
+            * مصارف عمومی به دالر ثبت نشده، سود خالص دالری برابر سود ناخالص است
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Balance Summary -->
+  <div class="col-lg-6">
+    <div class="erp-card h-100">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-wallet2"></i>
+          </span>
+          خلاصه مانده‌ها
+        </h5>
+        <span class="erp-badge erp-badge-info">؋ افغانی</span>
+      </div>
+      <div class="erp-card-body">
+        <div style="font-size:14px;">
+          <div class="d-flex justify-content-between mb-3">
+            <span>مجموع فروش دوره</span>
+            <strong style="direction:ltr;color:var(--accent-blue);">
+              {{ sales.totals.total_sales|default:0|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span>مجموع خریداری دوره</span>
+            <strong style="direction:ltr;color:var(--accent-orange);">
+              {{ purchases.totals.total_purchases|default:0|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--accent-red);">بدهی مشتریان (کل)</span>
+            <strong style="direction:ltr;color:var(--accent-red);">
+              {{ total_customer_debt|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--accent-orange);">بدهی ما به تامین‌کنندگان</span>
+            <strong style="direction:ltr;color:var(--accent-orange);">
+              {{ total_supplier_debt|floatformat:0|intcomma }} ؋
+            </strong>
+          </div>
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between">
+            <span style="font-weight:700;">تراز خالص</span>
+            {% with net=total_customer_debt|add:total_supplier_debt %}
+            <strong style="direction:ltr;font-size:16px;
+              color:{% if total_customer_debt > total_supplier_debt %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              {{ total_customer_debt|floatformat:0|intcomma }} ؋
+            </strong>
+            {% endwith %}
+          </div>
+        </div>
+
+        <!-- USD Balance Summary -->
+        <div class="divider my-3"></div>
+        <div style="font-size:14px;direction:ltr;">
+          <div style="font-size:12px;color:var(--text-muted);font-weight:700;
+                      margin-bottom:10px;direction:rtl;text-align:right;">
+            <i class="bi bi-currency-dollar"></i> دالر آمریکایی
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <strong style="color:var(--accent-blue);">
+              $ {{ sales.totals_usd.total_sales|default:0|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;">مجموع فروش دوره</span>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <strong style="color:var(--accent-orange);">
+              $ {{ purchases.totals_usd.total_purchases|default:0|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;">مجموع خریداری دوره</span>
+          </div>
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between mb-3">
+            <strong style="color:var(--accent-red);">
+              $ {{ total_customer_debt_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;color:var(--accent-red);">بدهی مشتریان (کل)</span>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <strong style="color:var(--accent-orange);">
+              $ {{ total_supplier_debt_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;color:var(--accent-orange);">بدهی ما به تامین‌کنندگان</span>
+          </div>
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between">
+            <strong style="font-size:16px;
+              color:{% if total_customer_debt_usd > total_supplier_debt_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              $ {{ total_customer_debt_usd|floatformat:2|intcomma }}
+            </strong>
+            <span style="direction:rtl;font-weight:700;">تراز خالص</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Quick Links -->
+<div class="row g-3">
+  <div class="col-md-3">
+    <a href="{% url 'reports:sales_report' %}?period={{ period }}"
+       class="erp-card d-block text-center"
+       style="padding:16px;text-decoration:none;color:var(--text-primary);">
+      <i class="bi bi-cart3"
+         style="font-size:24px;color:var(--accent-blue);display:block;
+                margin-bottom:8px;"></i>
+      <div style="font-size:13px;font-weight:600;">گزارش فروش</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'reports:profit_loss' %}?period={{ period }}"
+       class="erp-card d-block text-center"
+       style="padding:16px;text-decoration:none;color:var(--text-primary);">
+      <i class="bi bi-graph-up-arrow"
+         style="font-size:24px;color:var(--accent-green);display:block;
+                margin-bottom:8px;"></i>
+      <div style="font-size:13px;font-weight:600;">سود و زیان</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'customers:customer_debts' %}"
+       class="erp-card d-block text-center"
+       style="padding:16px;text-decoration:none;color:var(--text-primary);">
+      <i class="bi bi-people"
+         style="font-size:24px;color:var(--accent-red);display:block;
+                margin-bottom:8px;"></i>
+      <div style="font-size:13px;font-weight:600;">بدهی مشتریان</div>
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{% url 'reports:inventory_report' %}"
+       class="erp-card d-block text-center"
+       style="padding:16px;text-decoration:none;color:var(--text-primary);">
+      <i class="bi bi-boxes"
+         style="font-size:24px;color:var(--accent-purple);display:block;
+                margin-bottom:8px;"></i>
+      <div style="font-size:13px;font-weight:600;">گزارش موجودی</div>
+    </a>
+  </div>
+</div>
+
+{% endblock %}

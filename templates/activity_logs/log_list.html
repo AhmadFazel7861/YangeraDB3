@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}لاگ فعالیت‌ها{% endblock %}
+{% block page_title %}لاگ فعالیت‌ها{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-list-columns"></i></span>
+    لاگ فعالیت‌ها
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">
+      {{ total }}
+    </span>
+  </h1>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()"
+            class="btn-erp btn-erp-outline no-print">
+      <i class="bi bi-printer"></i> پرینت
+    </button>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-bar-chart-line me-2"></i>
+          فعالیت ۷ روز اخیر
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div class="d-flex flex-wrap gap-2">
+          {% for stat in stats %}
+          <div style="background:var(--bg-tertiary);border-radius:10px;
+                      padding:10px 16px;text-align:center;min-width:80px;">
+            <div style="font-size:20px;font-weight:800;
+                        color:var(--text-primary);">
+              {{ stat.count }}
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);">
+              {% for val, label in action_choices %}
+                {% if val == stat.action %}{{ label }}{% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% empty %}
+          <div style="color:var(--text-muted);font-size:13px;padding:10px;">
+            هیچ فعالیتی ثبت نشده
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-people me-2"></i>
+          فعال‌ترین کاربران
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:12px 16px;">
+        {% for u in active_users %}
+        <div class="d-flex justify-content-between align-items-center
+                    mb-2 pb-2"
+             style="border-bottom:1px solid var(--border-light);">
+          <span style="font-size:13px;font-weight:600;">
+            {{ u.username }}
+          </span>
+          <span class="erp-badge erp-badge-info">
+            {{ u.count }} عمل
+          </span>
+        </div>
+        {% empty %}
+        <div style="color:var(--text-muted);font-size:13px);">—</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4 no-print">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <div style="flex:1;min-width:180px;position:relative;">
+        <i class="bi bi-search"
+           style="position:absolute;right:12px;top:50%;
+                  transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}"
+               class="erp-form-control" style="padding-right:38px;"
+               placeholder="جستجو در توضیحات...">
+      </div>
+      <select name="action" class="erp-form-control" style="width:140px;"
+              onchange="this.form.submit()">
+        <option value="">همه عملیات</option>
+        {% for val, label in action_choices %}
+          <option value="{{ val }}"
+            {% if action_f == val %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      <select name="module" class="erp-form-control" style="width:140px;"
+              onchange="this.form.submit()">
+        <option value="">همه ماژول‌ها</option>
+        {% for val, label in module_choices %}
+          <option value="{{ val }}"
+            {% if module_f == val %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      <input type="text" name="user" value="{{ user_f }}"
+             class="erp-form-control" style="width:130px;"
+             placeholder="نام کاربری...">
+      <input type="date" name="date_from" value="{{ date_from }}"
+             class="erp-form-control" style="width:145px;direction:ltr;">
+      <input type="date" name="date_to" value="{{ date_to }}"
+             class="erp-form-control" style="width:145px;direction:ltr;">
+      <button type="submit" class="btn-erp btn-erp-primary">
+        فیلتر
+      </button>
+      {% if search or action_f or module_f or user_f or date_from or date_to %}
+        <a href="{% url 'activity_logs:log_list' %}"
+           class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Log Table -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th style="white-space:nowrap;">زمان</th>
+            <th>کاربر</th>
+            <th style="text-align:center;">عملیات</th>
+            <th>ماژول</th>
+            <th>توضیحات</th>
+            <th>شیء</th>
+            <th style="direction:ltr;text-align:left;">IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td style="font-size:11px;color:var(--text-muted);
+                       white-space:nowrap;">
+              {{ log.created_at|date:"Y/m/d H:i:s" }}
+            </td>
+            <td>
+              {% if log.username %}
+                <span style="font-weight:600;font-size:13px;">
+                  {{ log.username }}
+                </span>
+              {% else %}
+                <span style="color:var(--text-muted);">سیستم</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="erp-badge erp-badge-{{ log.action_color }}">
+                <i class="bi {{ log.action_icon }}"
+                   style="font-size:9px;"></i>
+                {{ log.get_action_display }}
+              </span>
+            </td>
+            <td>
+              <span class="erp-badge erp-badge-gray"
+                    style="font-size:11px;">
+                {{ log.get_module_display }}
+              </span>
+            </td>
+            <td style="font-size:13px;max-width:350px;">
+              {{ log.description|truncatechars:80 }}
+            </td>
+            <td style="font-size:11px;color:var(--text-muted);">
+              {% if log.object_repr %}
+                {{ log.object_repr|truncatechars:40 }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="font-size:11px;color:var(--text-muted);
+                       direction:ltr;text-align:left;">
+              {{ log.ip_address|default:"—" }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <i class="bi bi-list-columns"></i>
+                <h5>هیچ لاگی یافت نشد</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if logs.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      {% include 'partials/pagination.html' with page=logs %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

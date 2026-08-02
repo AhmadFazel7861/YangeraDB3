@@ -1,0 +1,381 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-cash-stack"></i></span>
+    {{ page_title }}
+  </h1>
+  <a href="{% url 'expenses:expense_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(239,68,68,.1);color:var(--accent-red);">
+            <i class="bi bi-cash-stack"></i>
+          </span>
+          اطلاعات مصرف
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+
+            <!-- Title -->
+            <div class="col-12">
+              <label class="erp-label">{{ form.title.label }} *</label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="erp-field-error">{{ form.title.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Category -->
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.category.label }}</label>
+              {{ form.category }}
+            </div>
+
+            <!-- Currency -->
+            <div class="col-md-3">
+              <label class="erp-label">{{ form.currency.label }} *</label>
+              {{ form.currency }}
+            </div>
+
+            <!-- Amount -->
+            <div class="col-md-3">
+              <label class="erp-label">
+                {{ form.amount.label }}
+                <span id="currencySymbolLabel"
+                      style="color:var(--accent-blue);">
+                  {% if default_currency == 'USD' %}${% else %}؋{% endif %}
+                </span> *
+              </label>
+              {{ form.amount }}
+              {% if form.amount.errors %}
+                <div class="erp-field-error">{{ form.amount.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Date -->
+            <div class="col-md-6" id="dateCol">
+              <label class="erp-label">{{ form.expense_date.label }} (شمسی) *</label>
+              <div class="d-flex gap-1" dir="ltr">
+                <select id="expDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="expMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="expYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              {{ form.expense_date }}
+              {% if form.expense_date.errors %}
+                <div class="erp-field-error">{{ form.expense_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Payment Method -->
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.payment_method.label }}</label>
+              {{ form.payment_method }}
+            </div>
+
+            <!-- Saraf section — shown only when saraf selected -->
+            <div id="sarafSection" style="display:none;" class="col-12">
+              <div class="row g-3"
+                   style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.2);
+                          border-radius:10px;padding:14px;margin:0;">
+                <div class="col-12">
+                  <div style="font-size:13px;font-weight:600;color:var(--accent-purple);margin-bottom:4px;">
+                    <i class="bi bi-bank"></i> اطلاعات صراف
+                  </div>
+                </div>
+
+                <!-- Banker select -->
+                <div class="col-md-6">
+                  <label class="erp-label">{{ form.banker.label }} *</label>
+                  {{ form.banker }}
+                  {% if form.banker.errors %}
+                    <div class="erp-field-error">{{ form.banker.errors.0 }}</div>
+                  {% endif %}
+                  <div id="bankerBalanceInfo"
+                       style="font-size:12px;margin-top:4px;color:var(--text-muted);"></div>
+                </div>
+
+                <!-- Saraf paid amount -->
+                <div class="col-md-6">
+                  <label class="erp-label">{{ form.saraf_paid_amount.label }}</label>
+                  {{ form.saraf_paid_amount }}
+                  {% if form.saraf_paid_amount.errors %}
+                    <div class="erp-field-error">{{ form.saraf_paid_amount.errors.0 }}</div>
+                  {% endif %}
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+                    ۰ = تمام مبلغ به عنوان بدهی به صراف ثبت می‌شود
+                  </div>
+                </div>
+
+                <!-- Debt preview -->
+                <div class="col-12">
+                  <div id="sarafDebtPreview"
+                       style="display:none;padding:10px 14px;border-radius:8px;
+                              background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);">
+                    <div style="font-size:12px;color:var(--text-muted);">
+                      <i class="bi bi-info-circle"></i>
+                      بدهی به صراف که بعداً باید پرداخت شود:
+                    </div>
+                    <div id="sarafDebtAmount"
+                         style="font-size:18px;font-weight:800;color:var(--accent-red);
+                                direction:ltr;margin-top:2px;">
+                      0 ؋
+                    </div>
+                  </div>
+                  <div id="sarafClearPreview"
+                       style="display:none;padding:10px 14px;border-radius:8px;
+                              background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);">
+                    <div style="font-size:12px;color:var(--accent-green);">
+                      <i class="bi bi-check-circle"></i>
+                      مبلغ کامل پرداخت شده — بدهی به صراف ندارید
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Paid to -->
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.paid_to.label }}</label>
+              {{ form.paid_to }}
+            </div>
+
+            <!-- Receipt -->
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.receipt_number.label }}</label>
+              {{ form.receipt_number }}
+            </div>
+
+            <!-- Description -->
+            <div class="col-12">
+              <label class="erp-label">{{ form.description.label }}</label>
+              {{ form.description }}
+            </div>
+
+          </div>
+
+          <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn-erp btn-erp-primary">
+              <i class="bi bi-check-circle"></i> {{ action }}
+            </button>
+            {% if action == 'ثبت' %}
+              <button type="submit" name="save_and_new" value="1"
+                      class="btn-erp btn-erp-outline">
+                <i class="bi bi-plus-circle"></i> ثبت و جدید
+              </button>
+            {% endif %}
+            <a href="{% url 'expenses:expense_list' %}"
+               class="btn-erp btn-erp-outline">انصراف</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Required Jalali dropdown picker ──
+const JALALI_MONTHS_EXPFORM = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapExpForm(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthExpForm(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapExpForm(year) ? 30 : 29;
+}
+
+function setupJalaliPickerExpForm(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_EXPFORM.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthExpForm(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupJalaliPickerExpForm('id_expense_date', 'expDay', 'expMonth', 'expYear');
+
+// ── Default currency from Django settings ──
+const defaultCurrency = '{{ default_currency|default:"AFN" }}';
+
+// ── Banker balance data from Django ──
+const bankerData = {
+  {% for b in form.banker.field.queryset %}
+  '{{ b.pk }}': {
+    name: '{{ b.name }}',
+    balance_afn: {{ b.balance_afn }},
+    balance_usd: {{ b.balance_usd }},
+  },
+  {% endfor %}
+};
+
+const currencySelect      = document.getElementById('currencySelect');
+const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+const bankerSelect        = document.getElementById('bankerSelect');
+const amountInput         = document.getElementById('amountInput');
+const sarafPaidInput      = document.getElementById('sarafPaidAmount');
+
+// ── Set default currency on page load (only for create, not edit) ──
+if (currencySelect && !currencySelect.dataset.prefilled) {
+  // If this is a new form (no instance), pre-select default currency
+  const isEditForm = {{ object|yesno:"true,false" }};
+  if (!isEditForm) {
+    currencySelect.value = defaultCurrency;
+  }
+}
+
+function currencySymbol() {
+  return currencySelect.value === 'USD' ? '$' : '؋';
+}
+
+// ── Currency toggle ──
+function onCurrencyChange() {
+  const isUSD = currencySelect.value === 'USD';
+  document.getElementById('currencySymbolLabel').textContent = isUSD ? '$' : '؋';
+  updateDebtPreview();
+}
+
+// ── Payment method toggle ──
+function onPaymentMethodChange() {
+  const isSaraf = paymentMethodSelect.value === 'saraf';
+  document.getElementById('sarafSection').style.display = isSaraf ? 'block' : 'none';
+  updateDebtPreview();
+}
+
+// ── Banker balance info ──
+function onBankerChange() {
+  const pk   = bankerSelect.value;
+  const info = document.getElementById('bankerBalanceInfo');
+  if (!pk || !bankerData[pk]) { info.textContent = ''; return; }
+
+  const b   = bankerData[pk];
+  const sym = currencySymbol();
+  const bal = sym === '$' ? b.balance_usd : b.balance_afn;
+
+  if (bal > 0) {
+    info.style.color = 'var(--accent-green)';
+    info.textContent = `مانده نزد این صراف: ${bal.toLocaleString('en-US')} ${sym}`;
+  } else if (bal < 0) {
+    info.style.color = 'var(--accent-red)';
+    info.textContent = `بدهی ما به این صراف: ${Math.abs(bal).toLocaleString('en-US')} ${sym}`;
+  } else {
+    info.style.color = 'var(--text-muted)';
+    info.textContent = 'مانده این صراف صفر است';
+  }
+  updateDebtPreview();
+}
+
+// ── Debt preview ──
+function updateDebtPreview() {
+  const isSaraf   = paymentMethodSelect.value === 'saraf';
+  const debtBox   = document.getElementById('sarafDebtPreview');
+  const clearBox  = document.getElementById('sarafClearPreview');
+  const debtLabel = document.getElementById('sarafDebtAmount');
+
+  if (!isSaraf) {
+    debtBox.style.display  = 'none';
+    clearBox.style.display = 'none';
+    return;
+  }
+
+  const total = parseFloat(amountInput.value) || 0;
+  const paid  = parseFloat(sarafPaidInput ? sarafPaidInput.value : 0) || 0;
+  const debt  = Math.max(0, total - paid);
+  const sym   = currencySymbol();
+
+  if (debt > 0) {
+    debtLabel.textContent  = `${debt.toLocaleString('en-US', {minimumFractionDigits: 2})} ${sym}`;
+    debtBox.style.display  = 'block';
+    clearBox.style.display = 'none';
+  } else if (total > 0) {
+    debtBox.style.display  = 'none';
+    clearBox.style.display = 'block';
+  } else {
+    debtBox.style.display  = 'none';
+    clearBox.style.display = 'none';
+  }
+}
+
+// ── Event listeners ──
+currencySelect.addEventListener('change', onCurrencyChange);
+paymentMethodSelect.addEventListener('change', onPaymentMethodChange);
+bankerSelect.addEventListener('change', onBankerChange);
+amountInput.addEventListener('input', updateDebtPreview);
+if (sarafPaidInput) {
+  sarafPaidInput.addEventListener('input', updateDebtPreview);
+}
+
+// ── Init on page load ──
+onCurrencyChange();
+onPaymentMethodChange();
+onBankerChange();
+</script>
+{% endblock %}

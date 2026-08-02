@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پروفایل کاربری{% endblock %}
+{% block page_title %}پروفایل کاربری{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person"></i></span>
+    پروفایل کاربری
+  </h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="erp-card text-center">
+      <div class="erp-card-body" style="padding: 40px 20px;">
+        <div class="user-avatar mx-auto mb-3"
+             style="width:80px;height:80px;border-radius:20px;font-size:30px;">
+          {{ user.display_name|first|upper }}
+        </div>
+        <h5 style="font-weight:700; font-size:17px;">{{ user.display_name }}</h5>
+        <span class="erp-badge erp-badge-info">{{ user.get_role_display }}</span>
+        <div class="divider"></div>
+        <div style="font-size:13px; color:var(--text-muted);">
+          <div class="mb-1"><i class="bi bi-person-badge me-1"></i> {{ user.username }}</div>
+          {% if user.phone %}
+            <div><i class="bi bi-phone me-1"></i> {{ user.phone }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-info-circle"></i>
+          </span>
+          اطلاعات حساب
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">نام کاربری</div>
+            <div style="font-weight:600;">{{ user.username }}</div>
+          </div>
+          <div class="col-md-6">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">نام کامل</div>
+            <div style="font-weight:600;">{{ user.get_full_name|default:"—" }}</div>
+          </div>
+          <div class="col-md-6">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">نقش</div>
+            <div style="font-weight:600;">{{ user.get_role_display }}</div>
+          </div>
+          <div class="col-md-6">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">تاریخ ثبت</div>
+            <div style="font-weight:600;">{{ user.created_at|date:"Y/m/d" }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

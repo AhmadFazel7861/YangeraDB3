@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}فاکتورهای خرید{% endblock %}
+{% block page_title %}فاکتورهای خرید{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-receipt-cutoff"></i></span>
+    فاکتورهای خرید
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">
+      {{ total_count }}
+    </span>
+  </h1>
+  <a href="{% url 'purchases:purchase_create' %}" class="btn-erp btn-erp-primary">
+    <i class="bi bi-plus-circle"></i> خرید جدید
+  </a>
+</div>
+
+<!-- Stats AFN -->
+<div class="stats-grid mb-3">
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع خریداری</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_afn.total_purchases|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-blue"><i class="bi bi-truck"></i></div>
+    </div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پرداخت شده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_afn.total_paid|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-cash-stack"></i></div>
+    </div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">باقی‌مانده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_afn.total_remaining|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-red"><i class="bi bi-exclamation-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats USD -->
+{% if totals_usd.total_purchases %}
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع خریداری</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_usd.total_purchases|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-blue"><i class="bi bi-truck"></i></div>
+    </div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پرداخت شده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_usd.total_paid|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-cash-stack"></i></div>
+    </div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">باقی‌مانده</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ totals_usd.total_remaining|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-red"><i class="bi bi-exclamation-circle"></i></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <div style="flex:1;min-width:180px;position:relative;">
+        <i class="bi bi-search"
+           style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                  color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}"
+               class="erp-form-control" style="padding-right:38px;"
+               placeholder="شماره فاکتور یا نام تامین‌کننده...">
+      </div>
+      <select name="status" class="erp-form-control" style="width:160px;"
+              onchange="this.form.submit()">
+        <option value="">همه وضعیت‌ها</option>
+        {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-erp btn-erp-primary">فیلتر</button>
+      {% if search or status_filter %}
+        <a href="{% url 'purchases:purchase_list' %}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>شماره فاکتور</th>
+            <th>تامین‌کننده</th>
+            <th>تاریخ</th>
+            <th>محصولات</th>
+            <th>انبار</th>
+            <th style="text-align:left;">مبلغ کل</th>
+            <th style="text-align:left;">پرداخت شده</th>
+            <th style="text-align:left;">باقی‌مانده</th>
+            <th style="text-align:center;">وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td>
+              <a href="{% url 'purchases:purchase_detail' inv.pk %}"
+                 style="font-family:monospace;font-weight:700;
+                        color:var(--accent-blue);text-decoration:none;">
+                {{ inv.invoice_number }}
+              </a>
+              {% if inv.currency == 'USD' %}
+                <span class="erp-badge erp-badge-info"
+                      style="font-size:10px;margin-right:4px;">$</span>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ inv.supplier.name }}</strong>
+              {% if inv.supplier_invoice_number %}
+                <div style="font-size:11px;color:var(--text-muted);direction:ltr;">
+                  {{ inv.supplier_invoice_number }}
+                </div>
+              {% endif %}
+            </td>
+            <td style="font-size:13px;white-space:nowrap;">{{ inv.purchase_date|jalali }}</td>
+            <td style="font-size:12px;">
+              {% for item in inv.items.all %}
+                <div>
+                  {{ item.product.name }}
+                  <span style="color:var(--text-muted);">
+                    × {{ item.quantity|floatformat:-2 }}{% if item.product.unit %} {{ item.product.unit.abbreviation }}{% endif %}
+                  </span>
+                </div>
+              {% endfor %}
+            </td>
+            <td style="font-size:13px;">{{ inv.warehouse.name }}</td>
+            <td style="text-align:left;direction:ltr;font-weight:600;">
+              {% if inv.currency == 'USD' %}
+                {{ inv.total_amount|floatformat:2|intcomma }} $
+              {% else %}
+                {{ inv.total_amount|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;color:var(--accent-green);">
+              {% if inv.currency == 'USD' %}
+                {{ inv.paid_amount|floatformat:2|intcomma }} $
+              {% else %}
+                {{ inv.paid_amount|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:700;">
+              {% if inv.remaining_amount > 0 %}
+                <span style="color:var(--accent-red);">
+                  {% if inv.currency == 'USD' %}
+                    {{ inv.remaining_amount|floatformat:2|intcomma }} $
+                  {% else %}
+                    {{ inv.remaining_amount|floatformat:0|intcomma }} ؋
+                  {% endif %}
+                </span>
+              {% else %}
+                <span style="color:var(--accent-green);">—</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              {% if inv.status == 'paid' %}
+                <span class="erp-badge erp-badge-success">کامل</span>
+              {% elif inv.status == 'partial' %}
+                <span class="erp-badge erp-badge-warning">جزئی</span>
+              {% elif inv.status == 'unpaid' %}
+                <span class="erp-badge erp-badge-danger">نشده</span>
+              {% else %}
+                <span class="erp-badge erp-badge-gray">{{ inv.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'purchases:purchase_detail' inv.pk %}"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="جزئیات">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'purchases:purchase_edit' inv.pk %}"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="ویرایش فاکتور">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'purchases:purchase_print' inv.pk %}"
+                   target="_blank"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="چاپ">
+                  <i class="bi bi-printer"></i>
+                </a>
+                <form method="post"
+                      action="{% url 'purchases:purchase_delete' inv.pk %}"
+                      onsubmit="return confirm('فاکتور {{ inv.invoice_number }} حذف شود؟\nموجودی برگشت داده خواهد شد.')">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="btn-erp btn-erp-danger"
+                          style="padding:4px 10px;font-size:12px;"
+                          title="حذف فاکتور">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10">
+              <div class="empty-state">
+                <i class="bi bi-receipt-cutoff"></i>
+                <h5>هیچ فاکتور خریدی یافت نشد</h5>
+                <a href="{% url 'purchases:purchase_create' %}"
+                   class="btn-erp btn-erp-primary mt-2">
+                  اولین خرید را ثبت کنید
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

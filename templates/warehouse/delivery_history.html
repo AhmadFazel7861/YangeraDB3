@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-clock-history"></i></span>
+    تاریخچه تحویل — {{ warehouse.name }}
+  </h1>
+  <a href="{% url 'warehouse:warehouse_detail' warehouse.pk %}?tab=pending"
+     class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<!-- Filter tabs -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:0;">
+    <div style="display:flex;border-bottom:1px solid var(--border-color);">
+      <a href="?status=delivered{% if search %}&q={{ search }}{% endif %}"
+         style="padding:14px 24px;font-weight:600;font-size:14px;text-decoration:none;
+                border-bottom:3px solid {% if status_filter == 'delivered' %}var(--accent-green){% else %}transparent{% endif %};
+                color:{% if status_filter == 'delivered' %}var(--accent-green){% else %}var(--text-muted){% endif %};">
+        <i class="bi bi-check-circle me-1"></i> تحویل داده شده
+      </a>
+      <a href="?status=cancelled{% if search %}&q={{ search }}{% endif %}"
+         style="padding:14px 24px;font-weight:600;font-size:14px;text-decoration:none;
+                border-bottom:3px solid {% if status_filter == 'cancelled' %}var(--accent-red){% else %}transparent{% endif %};
+                color:{% if status_filter == 'cancelled' %}var(--accent-red){% else %}var(--text-muted){% endif %};">
+        <i class="bi bi-x-circle me-1"></i> لغو شده
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex gap-3 align-items-center">
+      <input type="hidden" name="status" value="{{ status_filter }}">
+      <div style="flex:1;position:relative;">
+        <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}" class="erp-form-control"
+               style="padding-right:38px;" placeholder="جستجوی مشتری، محصول یا شماره فاکتور...">
+      </div>
+      <button type="submit" class="btn-erp btn-erp-primary">جستجو</button>
+      {% if search %}
+        <a href="?status={{ status_filter }}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+        <i class="bi bi-clock-history"></i>
+      </span>
+      {% if status_filter == 'delivered' %}تحویل داده شده‌ها{% else %}لغو شده‌ها{% endif %}
+      <span class="erp-badge erp-badge-gray">{{ total }}</span>
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>مشتری</th>
+            <th>محصول</th>
+            <th style="text-align:center;">مقدار</th>
+            <th>فاکتور</th>
+            <th>تاریخ فاکتور</th>
+            <th>زمان تحویل</th>
+            <th>تحویل‌دهنده</th>
+            <th>یادداشت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in deliveries %}
+          <tr>
+            <td>
+              <strong style="color:var(--accent-blue);">{{ d.customer.name }}</strong>
+              {% if d.customer.phone %}
+                <div style="font-size:11px;color:var(--text-muted);">{{ d.customer.phone }}</div>
+              {% endif %}
+            </td>
+            <td><strong>{{ d.product.name }}</strong></td>
+            <td style="text-align:center;font-weight:700;">
+              {{ d.quantity|floatformat:"-3" }}
+              <span style="font-size:11px;color:var(--text-muted);">{{ d.product.unit.abbreviation }}</span>
+            </td>
+            <td>
+              <a href="{% url 'sales:invoice_detail' d.invoice.pk %}"
+                 style="font-family:monospace;font-size:12px;color:var(--accent-blue);">
+                {{ d.invoice.invoice_number }}
+              </a>
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ d.invoice_date|date:"Y/m/d" }}
+            </td>
+            <td style="font-size:12px;">
+              {% if d.delivered_at %}
+                {{ d.delivered_at|date:"Y/m/d H:i" }}
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;">
+              {% if d.delivered_by %}
+                {{ d.delivered_by.get_full_name|default:d.delivered_by.username }}
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ d.notes|default:"—" }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h5>رکوردی یافت نشد</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if deliveries.has_other_pages %}
+<div class="d-flex justify-content-center mt-3">
+  {% if deliveries.has_previous %}
+    <a href="?status={{ status_filter }}&page={{ deliveries.previous_page_number }}{% if search %}&q={{ search }}{% endif %}"
+       class="btn-erp btn-erp-outline me-2">قبلی</a>
+  {% endif %}
+  <span style="padding:8px 16px;color:var(--text-muted);">
+    {{ deliveries.number }} / {{ deliveries.paginator.num_pages }}
+  </span>
+  {% if deliveries.has_next %}
+    <a href="?status={{ status_filter }}&page={{ deliveries.next_page_number }}{% if search %}&q={{ search }}{% endif %}"
+       class="btn-erp btn-erp-outline ms-2">بعدی</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

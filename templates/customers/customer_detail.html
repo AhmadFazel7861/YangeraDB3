@@ -1,0 +1,588 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block page_title %}{{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person"></i></span>
+    {{ customer.name }}
+    <span style="font-size:12px;color:var(--text-muted);font-weight:400;">{{ customer.code }}</span>
+  </h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'customers:customer_statement' customer.pk %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-journal-text"></i> کارنامه
+    </a>
+    <a href="{% url 'sales:invoice_create' %}" class="btn-erp btn-erp-success">
+      <i class="bi bi-plus-circle"></i> فاکتور جدید
+    </a>
+    <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+    <a href="{% url 'customers:customer_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<!-- AFN Balance Cards -->
+<div class="stats-grid mb-3">
+  <div class="stat-card {% if customer.net_balance > 0 %}accent-red{% elif customer.net_balance < 0 %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده حساب (؋)</div>
+        <div class="stat-value" style="font-size:22px;">{{ customer.net_balance|floatformat:0|intcomma }}</div>
+        <div class="stat-sub">
+          {% if customer.net_balance > 0 %}بدهکار{% elif customer.net_balance < 0 %}بستانکار{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if customer.net_balance > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-wallet2"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی افغانی</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-red);">
+          {{ customer.total_debt|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(239,68,68,.12);color:var(--accent-red);">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پیش‌پرداخت افغانی</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-green);">
+          {{ customer.advance_balance|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-arrow-down-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- USD Balance Cards (shown only if any USD activity) -->
+{% if customer.total_debt_usd > 0 or customer.advance_balance_usd > 0 %}
+<div class="stats-grid mb-4">
+  <div class="stat-card {% if customer.net_balance_usd > 0 %}accent-red{% elif customer.net_balance_usd < 0 %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده حساب ($)</div>
+        <div class="stat-value" style="font-size:22px;">{{ customer.net_balance_usd|floatformat:2|intcomma }}</div>
+        <div class="stat-sub">
+          {% if customer.net_balance_usd > 0 %}بدهکار{% elif customer.net_balance_usd < 0 %}بستانکار{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if customer.net_balance_usd > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی دالر</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-red);">
+          {{ customer.total_debt_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(239,68,68,.12);color:var(--accent-red);">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پیش‌پرداخت دالر</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-green);">
+          {{ customer.advance_balance_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-arrow-down-circle"></i></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-4">
+
+    <!-- Profile -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-body" style="padding:20px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:16px;
+                    background:rgba(59,130,246,.12);color:var(--accent-blue);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:26px;font-weight:800;margin:0 auto 14px;">
+          {{ customer.name|first|upper }}
+        </div>
+        <h5 style="font-weight:800;margin-bottom:6px;">{{ customer.name }}</h5>
+        <div style="font-size:12px;color:var(--text-muted);">{{ customer.code }}</div>
+        {% if customer.phone %}
+          <div style="font-size:13px;margin-top:6px;direction:ltr;">
+            <i class="bi bi-telephone me-1"></i>{{ customer.phone }}
+          </div>
+        {% endif %}
+        {% if customer.address %}
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">{{ customer.address }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Receive Payment -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header" style="background:rgba(16,185,129,.04);">
+        <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-green);">
+          <i class="bi bi-cash-coin me-2"></i>دریافت وجه از مشتری
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="receive_payment">
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.currency.label }}</label>
+            {{ payment_form.currency }}
+          </div>
+          <div class="mb-3" id="paymentExchangeWrapper" style="display:none;">
+            <label class="erp-label">{{ payment_form.exchange_rate.label }}</label>
+            {{ payment_form.exchange_rate }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.amount.label }}</label>
+            {{ payment_form.amount }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_method.label }}</label>
+            {{ payment_form.payment_method }}
+          </div>
+          <div class="mb-3" id="paymentBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ payment_form.banker_id.label }}</label>
+            {{ payment_form.banker_id }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_date.label }} (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="payDay" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="payMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="payYear" class="erp-form-control" style="padding:8px 4px;"></select>
+            </div>
+            {{ payment_form.payment_date }}
+            {% if payment_form.payment_date.errors %}
+              <div class="erp-field-error">{{ payment_form.payment_date.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.notes.label }}</label>
+            {{ payment_form.notes }}
+          </div>
+          {% if customer.total_debt > 0 %}
+          <div class="mb-2 p-2 rounded"
+               style="background:rgba(239,68,68,.06);font-size:12px;border:1px solid rgba(239,68,68,.15);">
+            بدهی افغانی: <strong>{{ customer.total_debt|floatformat:0|intcomma }} ؋</strong>
+          </div>
+          {% endif %}
+          {% if customer.total_debt_usd > 0 %}
+          <div class="mb-3 p-2 rounded"
+               style="background:rgba(239,68,68,.06);font-size:12px;border:1px solid rgba(239,68,68,.15);">
+            بدهی دالر: <strong>{{ customer.total_debt_usd|floatformat:2|intcomma }} $</strong>
+          </div>
+          {% endif %}
+          <button type="submit" class="btn-erp btn-erp-success w-100" style="padding:10px;">
+            <i class="bi bi-check-circle"></i> ثبت دریافت
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Advance -->
+    <div class="erp-card">
+      <div class="erp-card-header" style="background:rgba(59,130,246,.04);">
+        <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-blue);">
+          <i class="bi bi-piggy-bank me-2"></i>ثبت پیش‌پرداخت
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_advance">
+          <div class="mb-3">
+            <label class="erp-label">{{ advance_form.currency.label }}</label>
+            {{ advance_form.currency }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ advance_form.amount.label }}</label>
+            {{ advance_form.amount }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ advance_form.payment_method.label }}</label>
+            {{ advance_form.payment_method }}
+          </div>
+          <div class="mb-3" id="advanceBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ advance_form.banker_id.label }}</label>
+            {{ advance_form.banker_id }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ advance_form.payment_date.label }} (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="advDay" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="advMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="advYear" class="erp-form-control" style="padding:8px 4px;"></select>
+            </div>
+            {{ advance_form.payment_date }}
+            {% if advance_form.payment_date.errors %}
+              <div class="erp-field-error">{{ advance_form.payment_date.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ advance_form.notes.label }}</label>
+            {{ advance_form.notes }}
+          </div>
+          <button type="submit" class="btn-erp btn-erp-primary w-100" style="padding:10px;">
+            <i class="bi bi-plus-circle"></i> ثبت پیش‌پرداخت
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-lg-8">
+
+    <!-- Recent Transactions -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-arrow-left-right"></i>
+          </span>
+          تراکنش‌های اخیر
+        </h5>
+        <a href="{% url 'customers:customer_statement' customer.pk %}"
+           class="btn-erp btn-erp-outline" style="font-size:12px;padding:5px 12px;">
+          کارنامه کامل
+        </a>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>نوع</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">بدهی بعد</th>
+              <th style="text-align:left;">پیش بعد</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in recent_txs %}
+            <tr {% if tx.is_reversed %}style="opacity:.5;text-decoration:line-through;"{% endif %}>
+              <td style="font-size:12px;white-space:nowrap;direction:ltr;text-align:right;">
+                {{ tx.transaction_date|jalali }}
+              </td>
+              <td>
+                {% if tx.tx_type == 'invoice' %}
+                  <span class="erp-badge erp-badge-danger">فاکتور</span>
+                {% elif tx.tx_type == 'payment' %}
+                  <span class="erp-badge erp-badge-success">دریافت</span>
+                {% elif tx.tx_type == 'advance_add' %}
+                  <span class="erp-badge erp-badge-info">پیش‌پرداخت</span>
+                {% elif tx.tx_type == 'advance_use' %}
+                  <span class="erp-badge erp-badge-warning">کسر پیش</span>
+                {% elif tx.tx_type == 'reversal' %}
+                  <span class="erp-badge erp-badge-gray">برگشت</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-gray">{{ tx.get_tx_type_display }}</span>
+                {% endif %}
+                {% if tx.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+                {% if tx.payment_method == 'saraf' %}
+                  <span class="erp-badge erp-badge-warning" style="font-size:10px;">صراف</span>
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {% if tx.currency == 'USD' %}
+                  {{ tx.amount|floatformat:2|intcomma }} $
+                  {% if tx.exchange_rate > 1 %}
+                    <div style="font-size:10px;color:var(--text-muted);">
+                      نرخ: {{ tx.exchange_rate|floatformat:0 }}
+                    </div>
+                  {% endif %}
+                {% else %}
+                  {{ tx.amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-size:12px;">
+                {% if tx.currency == 'USD' %}
+                  <span style="color:var(--accent-red);">{{ tx.debt_after_usd|floatformat:2|intcomma }} $</span>
+                  {% if tx.debt_after > 0 %}
+                    <div style="font-size:10px;color:var(--text-muted);">{{ tx.debt_after|floatformat:0|intcomma }} ؋</div>
+                  {% endif %}
+                {% else %}
+                  <span style="color:var(--accent-red);">{{ tx.debt_after|floatformat:0|intcomma }} ؋</span>
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-size:12px;">
+                {% if tx.currency == 'USD' %}
+                  <span style="color:var(--accent-green);">{{ tx.advance_after_usd|floatformat:2|intcomma }} $</span>
+                {% else %}
+                  <span style="color:var(--accent-green);">{{ tx.advance_after|floatformat:0|intcomma }} ؋</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not tx.is_reversed and tx.tx_type != 'invoice' and tx.tx_type != 'reversal' %}
+                <form method="post"
+                      action="{% url 'customers:reverse_transaction' tx.pk %}"
+                      onsubmit="return confirm('این تراکنش برگشت داده شود؟')">
+                  {% csrf_token %}
+                  <input type="hidden" name="notes" value="برگشت دستی">
+                  <button class="btn-erp btn-erp-outline"
+                          style="padding:3px 8px;font-size:11px;" title="برگشت">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-inbox"></i>
+                  <h5>هیچ تراکنشی ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+      </div>
+    </div>
+
+    <!-- Recent Invoices -->
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+            <i class="bi bi-receipt"></i>
+          </span>
+          فاکتورهای اخیر
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>فاکتور</th>
+              <th>تاریخ</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">مانده</th>
+              <th style="text-align:center;">وضعیت</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'sales:invoice_detail' inv.pk %}"
+                   style="font-family:monospace;font-weight:700;
+                          color:var(--accent-blue);text-decoration:none;">
+                  {{ inv.invoice_number }}
+                </a>
+                {% if inv.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px;direction:ltr;text-align:right;">{{ inv.invoice_date|jalali }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:600;">
+                {% if inv.currency == 'USD' %}
+                  {{ inv.total_amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ inv.total_amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;">
+                {% if inv.remaining_amount > 0 %}
+                  <span style="color:var(--accent-red);font-weight:700;">
+                    {% if inv.currency == 'USD' %}
+                      {{ inv.remaining_amount|floatformat:2|intcomma }} $
+                    {% else %}
+                      {{ inv.remaining_amount|floatformat:0|intcomma }} ؋
+                    {% endif %}
+                  </span>
+                {% else %}
+                  <span style="color:var(--accent-green);">—</span>
+                {% endif %}
+              </td>
+              <td style="text-align:center;">
+                {% if inv.status == 'paid' %}
+                  <span class="erp-badge erp-badge-success">کامل</span>
+                {% elif inv.status == 'partial' %}
+                  <span class="erp-badge erp-badge-warning">جزئی</span>
+                {% elif inv.status == 'confirmed' %}
+                  <span class="erp-badge erp-badge-danger">نشده</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-gray">لغو</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-receipt"></i>
+                  <h5>هیچ فاکتوری ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Required Jalali dropdown picker (reused pattern) ──
+const JALALI_MONTHS_CUST = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapCust(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthCust(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapCust(year) ? 30 : 29;
+}
+
+function setupJalaliPickerCust(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_CUST.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthCust(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+// Both forms use field name "payment_date", so Django gives both hidden
+// inputs the same auto id="id_payment_date" (each form is a separate <form>
+// tag, but Django doesn't know that when generating widget ids). We select
+// them by order on the page: first form = receive payment, second = advance.
+const paymentDateInputs = document.querySelectorAll('input[name="payment_date"]');
+if (paymentDateInputs.length > 0) {
+  paymentDateInputs[0].id = 'id_payment_date_receive';
+  setupJalaliPickerCust('id_payment_date_receive', 'payDay', 'payMonth', 'payYear');
+}
+if (paymentDateInputs.length > 1) {
+  paymentDateInputs[1].id = 'id_payment_date_advance';
+  setupJalaliPickerCust('id_payment_date_advance', 'advDay', 'advMonth', 'advYear');
+}
+
+// Payment form — show exchange rate when USD selected
+const paymentCurrency     = document.getElementById('paymentCurrency');
+const paymentExchangeWrap = document.getElementById('paymentExchangeWrapper');
+const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+const paymentBankerWrap   = document.getElementById('paymentBankerWrapper');
+
+function togglePaymentCurrency() {
+  if (paymentCurrency) {
+    paymentExchangeWrap.style.display =
+      paymentCurrency.value === 'USD' ? 'block' : 'none';
+  }
+}
+function togglePaymentBanker() {
+  if (paymentMethodSelect) {
+    paymentBankerWrap.style.display =
+      paymentMethodSelect.value === 'saraf' ? 'block' : 'none';
+  }
+}
+if (paymentCurrency)     { paymentCurrency.addEventListener('change', togglePaymentCurrency); togglePaymentCurrency(); }
+if (paymentMethodSelect) { paymentMethodSelect.addEventListener('change', togglePaymentBanker); togglePaymentBanker(); }
+
+// Advance form — no exchange rate, only banker toggle
+const advanceMethodSelect = document.getElementById('advanceMethodSelect');
+const advanceBankerWrap   = document.getElementById('advanceBankerWrapper');
+
+function toggleAdvanceBanker() {
+  if (advanceMethodSelect) {
+    advanceBankerWrap.style.display =
+      advanceMethodSelect.value === 'saraf' ? 'block' : 'none';
+  }
+}
+if (advanceMethodSelect) { advanceMethodSelect.addEventListener('change', toggleAdvanceBanker); toggleAdvanceBanker(); }
+</script>
+{% endblock %}

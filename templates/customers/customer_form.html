@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-plus"></i></span>
+    {{ page_title }}
+  </h1>
+  <a href="{% url 'customers:customer_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-person"></i>
+          </span>
+          اطلاعات مشتری
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="erp-label">{{ form.name.label }} <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="erp-field-error">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.phone.label }}</label>
+              {{ form.phone }}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.phone2.label }}</label>
+              {{ form.phone2 }}
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.address.label }}</label>
+              {{ form.address }}
+            </div>
+
+            <div class="col-md-3">
+              <label class="erp-label">{{ form.opening_balance.label }}</label>
+              {{ form.opening_balance }}
+              <small style="font-size:11px;color:var(--text-muted);">بدهی موجود قبل از شروع سیستم</small>
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">{{ form.opening_balance_usd.label }}</label>
+              {{ form.opening_balance_usd }}
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">{{ form.credit_limit.label }}</label>
+              {{ form.credit_limit }}
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">{{ form.credit_limit_usd.label }}</label>
+              {{ form.credit_limit_usd }}
+            </div>
+
+            <div class="col-12">
+              <label class="erp-label">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+            <div class="col-12 d-flex align-items-center gap-2">
+              {{ form.is_active }}
+              <label class="form-check-label" style="font-size:14px;cursor:pointer;">
+                {{ form.is_active.label }}
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn-erp btn-erp-primary">
+              <i class="bi bi-check-circle"></i> {{ action }}
+            </button>
+            {% if action == 'ثبت' %}
+            <button type="submit" name="save_and_new" value="1" class="btn-erp btn-erp-outline">
+              <i class="bi bi-plus-circle"></i> ثبت و مشتری جدید
+            </button>
+            {% endif %}
+            <a href="{% url 'customers:customer_list' %}" class="btn-erp btn-erp-outline">انصراف</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

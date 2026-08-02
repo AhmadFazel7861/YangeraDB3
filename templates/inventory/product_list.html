@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}محصولات{% endblock %}
+{% block page_title %}محصولات{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-box-seam"></i></span>
+    محصولات
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">{{ total }}</span>
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'inventory:category_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-tags"></i> دسته‌بندی‌ها
+    </a>
+    <a href="{% url 'inventory:unit_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-rulers"></i> واحدها
+    </a>
+    <a href="{% url 'inventory:product_create' %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-plus-circle"></i> محصول جدید
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" id="filterForm" class="d-flex flex-wrap gap-3 align-items-center">
+      <!-- Search -->
+      <div style="flex:1; min-width:200px; position:relative;">
+        <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" id="searchInput" value="{{ search }}"
+               class="erp-form-control" style="padding-right:38px;"
+               placeholder="نام محصول، کد، بارکد...">
+      </div>
+      <!-- Category filter -->
+      <select name="category" class="erp-form-control" style="width:180px;"
+              onchange="this.form.submit()">
+        <option value="">همه دسته‌بندی‌ها</option>
+        {% for cat in categories %}
+          <option value="{{ cat.pk }}" {% if category_filter == cat.pk|stringformat:'s' %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <!-- Stock filter -->
+      <select name="stock" class="erp-form-control" style="width:150px;"
+              onchange="this.form.submit()">
+        <option value="">همه موجودی‌ها</option>
+        <option value="low" {% if stock_filter == 'low' %}selected{% endif %}>موجودی کم</option>
+        <option value="out" {% if stock_filter == 'out' %}selected{% endif %}>ناموجود</option>
+      </select>
+      <button type="submit" class="btn-erp btn-erp-primary">فیلتر</button>
+      {% if search or category_filter or stock_filter %}
+        <a href="{% url 'inventory:product_list' %}" class="btn-erp btn-erp-outline">پاک کردن</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Product Table -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>کد</th>
+            <th>نام محصول</th>
+            <th>دسته‌بندی</th>
+            <th>واحد</th>
+            <th style="text-align:center;">موجودی</th>
+            <th style="text-align:left;">قیمت فروش</th>
+            <th style="text-align:center;">وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="productTableBody">
+          {% include 'inventory/partials/product_rows.html' %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <div class="d-flex justify-content-center p-3 border-top" style="border-color:var(--border-color) !important;">
+      <nav>
+        <ul class="pagination pagination-sm mb-0 gap-1">
+          {% if products.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ products.previous_page_number }}&q={{ search }}&category={{ category_filter }}&stock={{ stock_filter }}">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+          {% endif %}
+          {% for num in products.paginator.page_range %}
+            <li class="page-item {% if products.number == num %}active{% endif %}">
+              <a class="page-link" href="?page={{ num }}&q={{ search }}&category={{ category_filter }}&stock={{ stock_filter }}">
+                {{ num }}
+              </a>
+            </li>
+          {% endfor %}
+          {% if products.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ products.next_page_number }}&q={{ search }}&category={{ category_filter }}&stock={{ stock_filter }}">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Debounced live search
+let searchTimer;
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    document.getElementById('filterForm').submit();
+  }, 400);
+});
+</script>
+{% endblock %}

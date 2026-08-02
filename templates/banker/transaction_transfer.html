@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}انتقال بین صرافان{% endblock %}
+{% block page_title %}انتقال بین صرافان{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-arrow-left-right"></i></span>
+    انتقال بین صرافان
+  </h1>
+  <a href="{% url 'banker:banker_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-arrow-left-right"></i>
+          </span>
+          اطلاعات انتقال
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.from_banker.label }} *</label>
+              {{ form.from_banker }}
+              <div id="fromBankerBalance" class="mt-1"
+                   style="font-size:12px;display:none;"></div>
+              {% if form.from_banker.errors %}
+                <div class="text-danger small mt-1">{{ form.from_banker.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.to_banker.label }} *</label>
+              {{ form.to_banker }}
+              <div id="toBankerBalance" class="mt-1"
+                   style="font-size:12px;display:none;"></div>
+              {% if form.to_banker.errors %}
+                <div class="text-danger small mt-1">{{ form.to_banker.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.currency.label }}</label>
+              <select name="currency" id="id_currency" class="erp-input">
+                {% for val, label in form.currency.field.choices %}
+                  <option value="{{ val }}"
+                    {% if val == default_currency %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.amount.label }} *</label>
+              {{ form.amount }}
+              {% if form.amount.errors %}
+                <div class="text-danger small mt-1">{{ form.amount.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.transaction_date.label }} (شمسی) *</label>
+              <div class="d-flex gap-1" dir="ltr">
+                <select id="trDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="trMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="trYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              {{ form.transaction_date }}
+              {% if form.transaction_date.errors %}
+                <div class="erp-field-error">{{ form.transaction_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.reference.label }}</label>
+              {{ form.reference }}
+            </div>
+
+            <div class="col-12">
+              <label class="erp-label">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="text-danger small mt-3">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Live Preview -->
+          <div id="txPreview"
+               style="display:none;margin-top:16px;padding:16px;
+                      border-radius:10px;border:1px solid;
+                      transition:var(--transition);">
+            <div style="font-size:12px;color:var(--text-muted);
+                        margin-bottom:8px;">پیش‌نمایش انتقال</div>
+            <div id="previewContent"
+                 style="font-size:15px;font-weight:700;"></div>
+          </div>
+
+          <div class="d-flex gap-3 mt-4">
+            <button type="submit"
+                    class="btn-erp btn-erp-primary"
+                    style="padding:12px 32px;font-size:15px;">
+              <i class="bi bi-check-circle"></i> ثبت انتقال
+            </button>
+            <a href="{% url 'banker:banker_list' %}"
+               class="btn-erp btn-erp-outline"
+               style="padding:12px;">
+              انصراف
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadBalance(selectName, displayElId) {
+  const sel = document.querySelector(`[name="${selectName}"]`);
+  if (!sel) return;
+  sel.addEventListener('change', function() {
+    const pk = this.value;
+    const el = document.getElementById(displayElId);
+    if (!pk) { el.style.display = 'none'; return; }
+    fetch(`/banker/api/balance/?pk=${pk}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          let html = `مانده فعلی: `;
+          if (data.balance_afn !== 0) {
+            html += `<strong style="color:var(--accent-${data.balance_afn > 0 ? 'red' : 'green'});">${
+              data.balance_afn.toLocaleString('en-US', {minimumFractionDigits: 0})
+            } ؋</strong>`;
+          }
+          if (data.balance_usd !== 0) {
+            html += ` | <strong style="direction:ltr;">${
+              data.balance_usd.toFixed(4)
+            } $</strong>`;
+          }
+          if (data.balance_afn === 0 && data.balance_usd === 0) {
+            html += '<span class="erp-badge erp-badge-success">تسویه</span>';
+          }
+          el.innerHTML = html;
+          el.style.display = 'block';
+        }
+      })
+      .catch(() => {});
+  });
+}
+
+loadBalance('from_banker', 'fromBankerBalance');
+loadBalance('to_banker', 'toBankerBalance');
+
+function updatePreview() {
+  const amount     = parseFloat(document.querySelector('[name="amount"]').value) || 0;
+  const currency   = document.getElementById('id_currency').value;
+  const fromSelect = document.querySelector('[name="from_banker"]');
+  const toSelect   = document.querySelector('[name="to_banker"]');
+  const fromText   = fromSelect.options[fromSelect.selectedIndex] ? fromSelect.options[fromSelect.selectedIndex].text : '';
+  const toText     = toSelect.options[toSelect.selectedIndex] ? toSelect.options[toSelect.selectedIndex].text : '';
+  const preview    = document.getElementById('txPreview');
+  const content    = document.getElementById('previewContent');
+
+  if (amount <= 0 || !fromSelect.value || !toSelect.value) { preview.style.display = 'none'; return; }
+
+  preview.style.background = 'rgba(59,130,246,.08)';
+  preview.style.borderColor = 'rgba(59,130,246,.2)';
+  content.innerHTML = `
+    انتقال از «${fromText}» به «${toText}»<br>
+    <span style="direction:ltr;">${amount.toLocaleString('en-US',{minimumFractionDigits:4})} ${currency}</span>
+  `;
+  preview.style.display = 'block';
+}
+
+document.querySelector('[name="amount"]').addEventListener('input', updatePreview);
+document.querySelector('[name="from_banker"]').addEventListener('change', updatePreview);
+document.querySelector('[name="to_banker"]').addEventListener('change', updatePreview);
+document.getElementById('id_currency').addEventListener('change', updatePreview);
+
+// ── Required Jalali dropdown picker ──
+const JALALI_MONTHS_BANKERTR = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapBankerTr(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthBankerTr(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapBankerTr(year) ? 30 : 29;
+}
+
+function setupJalaliPickerBankerTr(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_BANKERTR.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthBankerTr(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupJalaliPickerBankerTr('id_transaction_date', 'trDay', 'trMonth', 'trYear');
+</script>
+{% endblock %}

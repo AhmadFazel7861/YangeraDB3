@@ -1,0 +1,84 @@
+<header class="erp-navbar">
+
+  <!-- Sidebar toggle -->
+  <button class="navbar-toggle-btn" id="sidebarToggleBtn" title="Alt+S">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <!-- Breadcrumb -->
+  <div class="navbar-breadcrumb">
+    <span class="current-page">{% block page_title %}{% endblock %}</span>
+  </div>
+
+  <!-- Actions -->
+  <div class="navbar-actions">
+
+    <!-- USD Rate Display -->
+    {% if TODAY_USD_RATE %}
+    <div style="font-size:12px;color:var(--text-muted);
+                padding:6px 12px;background:var(--bg-tertiary);
+                border-radius:8px;border:1px solid var(--border-color);
+                direction:ltr;white-space:nowrap;">
+      <span style="color:var(--text-primary);font-weight:700;">
+        $1
+      </span>
+      =
+      <span style="color:var(--accent-green);font-weight:700;">
+        {{ TODAY_USD_RATE|floatformat:2 }} ؋
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Alerts button -->
+    <a href="{% url 'alerts:alert_list' %}"
+       class="navbar-btn" title="هشدارها" style="position:relative;">
+      <i class="bi bi-bell{% if ALERT_COUNT %}-fill{% endif %}"></i>
+      {% if ALERT_COUNT %}
+        <span style="position:absolute;top:2px;left:2px;
+                     background:var(--accent-red);color:white;
+                     font-size:9px;font-weight:800;
+                     min-width:16px;height:16px;
+                     border-radius:8px;
+                     display:flex;align-items:center;justify-content:center;
+                     padding:0 3px;line-height:1;
+                     border:2px solid var(--bg-secondary);">
+          {% if ALERT_COUNT > 99 %}99+{% else %}{{ ALERT_COUNT }}{% endif %}
+        </span>
+      {% endif %}
+    </a>
+
+    <!-- Theme toggle -->
+    <button class="theme-toggle-btn" id="themeToggleBtn" title="Alt+T">
+      <i class="bi bi-moon-fill"></i>
+      <span class="theme-label">شب</span>
+    </button>
+
+    <!-- User menu -->
+    <div class="dropdown">
+      <button class="navbar-btn dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-person-circle"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-start"
+          style="font-family:'Vazirmatn',sans-serif; font-size:13px; min-width:180px;">
+        <li>
+          <span class="dropdown-item-text" style="color:var(--text-muted); font-size:11px;">
+            {{ user.display_name }}
+          </span>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" href="{% url 'accounts:profile' %}">
+            <i class="bi bi-person me-2"></i> پروفایل
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+            <i class="bi bi-box-arrow-left me-2"></i> خروج
+          </a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+</header>

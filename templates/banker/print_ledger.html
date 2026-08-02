@@ -1,0 +1,205 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>دفتر صراف — {{ banker.name }}</title>
+  <style>
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('{% static "fonts/Vazirmatn/Vazirmatn-Regular.woff2" %}') format('woff2');
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('{% static "fonts/Vazirmatn/Vazirmatn-Bold.woff2" %}') format('woff2');
+      font-weight: 700;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 12px; color: #1a2332;
+      background: white; padding: 16px; direction: rtl;
+    }
+    .header {
+      background: #1e2a3a; color: white;
+      padding: 16px 20px; border-radius: 8px 8px 0 0;
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 0;
+    }
+    .header h1 { font-size: 16px; margin-bottom: 4px; }
+    .header p { font-size: 11px; opacity: .8; }
+    .summary {
+      background: #f8fafc; padding: 12px 20px;
+      border: 1px solid #e2e8f0; border-top: none;
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .sum-item { font-size: 12px; }
+    .sum-item .label { color: #64748b; margin-bottom: 2px; }
+    .sum-item .value { font-weight: 700; font-size: 14px; }
+    table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid #e2e8f0;
+    }
+    thead th {
+      background: #f1f5f9; padding: 8px 12px;
+      font-size: 10px; font-weight: 600; color: #475569;
+      border-bottom: 2px solid #e2e8f0; text-align: right;
+    }
+    tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 11px;
+    }
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    tfoot td {
+      padding: 10px 12px; font-weight: 700;
+      background: #f1f5f9; border-top: 2px solid #1e2a3a;
+    }
+    .debit  { color: #dc2626; }
+    .credit { color: #059669; }
+    .footer {
+      margin-top: 16px; text-align: center;
+      font-size: 10px; color: #94a3b8;
+    }
+    @media print {
+      body { padding: 0; }
+      @page { margin: 8mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>دفتر صراف — {{ banker.name }}</h1>
+    <p>قنادی تیموریان</p>
+    {% if date_from or date_to %}
+      <p>دوره: {{ date_from|default:"ابتدا" }} تا {{ date_to|default:"پایان" }}</p>
+    {% endif %}
+  </div>
+  <div style="text-align:left;">
+    <div style="font-size:11px;opacity:.8;">
+      {% if banker.phone %}{{ banker.phone }}{% endif %}
+    </div>
+    <div style="font-size:11px;opacity:.8;">
+      مانده AFN:
+      <strong>{{ banker.balance_afn|floatformat:0|intcomma }} ؋</strong>
+    </div>
+    {% if banker.balance_usd != 0 %}
+    <div style="font-size:11px;opacity:.8;direction:ltr;">
+      مانده USD:
+      <strong>{{ banker.balance_usd|floatformat:4 }} $</strong>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="summary">
+  <div class="sum-item">
+    <div class="label">مجموع داده شده (AFN)</div>
+    <div class="value debit">{{ total_debit_afn|floatformat:0|intcomma }} ؋</div>
+  </div>
+  <div class="sum-item">
+    <div class="label">مجموع دریافت شده (AFN)</div>
+    <div class="value credit">{{ total_credit_afn|floatformat:0|intcomma }} ؋</div>
+  </div>
+  {% if total_debit_usd %}
+  <div class="sum-item">
+    <div class="label">مجموع داده شده (USD)</div>
+    <div class="value debit" style="direction:ltr;">
+      {{ total_debit_usd|floatformat:4 }} $
+    </div>
+  </div>
+  {% endif %}
+  {% if total_credit_usd %}
+  <div class="sum-item">
+    <div class="label">مجموع دریافت شده (USD)</div>
+    <div class="value credit" style="direction:ltr;">
+      {{ total_credit_usd|floatformat:4 }} $
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>تاریخ</th>
+      <th>نوع</th>
+      <th>ارز</th>
+      <th style="text-align:left;">بدهکار</th>
+      <th style="text-align:left;">بستانکار</th>
+      <th style="text-align:left;">نرخ</th>
+      <th>مرجع</th>
+      <th>یادداشت</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for entry in entries %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td style="font-weight:600;">{{ entry.tx.transaction_date }}</td>
+      <td>{{ entry.tx.get_tx_type_display }}</td>
+      <td style="font-weight:700;">{{ entry.tx.currency }}</td>
+      <td class="debit" style="text-align:left;direction:ltr;font-weight:600;">
+        {% if entry.tx.tx_type == 'given' %}
+          {{ entry.tx.amount|floatformat:4 }}
+        {% else %}—{% endif %}
+      </td>
+      <td class="credit" style="text-align:left;direction:ltr;font-weight:600;">
+        {% if entry.tx.tx_type == 'received' %}
+          {{ entry.tx.amount|floatformat:4 }}
+        {% else %}—{% endif %}
+      </td>
+      <td style="text-align:left;direction:ltr;font-size:11px;color:#64748b;">
+        {% if entry.tx.currency == 'USD' %}
+          {{ entry.tx.exchange_rate|floatformat:4 }}
+        {% else %}—{% endif %}
+      </td>
+      <td style="color:#64748b;">{{ entry.tx.reference|default:"—" }}</td>
+      <td style="color:#64748b;">
+        {{ entry.tx.notes|default:"—"|truncatechars:30 }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="4">مجموع</td>
+      <td class="debit" style="text-align:left;direction:ltr;">
+        {{ total_debit_afn|floatformat:0|intcomma }} ؋ (AFN)
+        {% if total_debit_usd %}
+          | {{ total_debit_usd|floatformat:4 }} $
+        {% endif %}
+      </td>
+      <td class="credit" style="text-align:left;direction:ltr;">
+        {{ total_credit_afn|floatformat:0|intcomma }} ؋ (AFN)
+        {% if total_credit_usd %}
+          | {{ total_credit_usd|floatformat:4 }} $
+        {% endif %}
+      </td>
+      <td colspan="3">
+        مانده: {{ banker.balance_afn|floatformat:0|intcomma }} ؋
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="footer">
+  قنادی تیموریان — هرات —
+  0790090032 | 0705294629
+</div>
+
+<div style="text-align:center;margin-top:12px;no-print;">
+  <button onclick="window.print()"
+          style="background:#1e2a3a;color:white;border:none;
+                 padding:8px 24px;border-radius:8px;
+                 font-family:'Vazirmatn',sans-serif;
+                 font-size:13px;cursor:pointer;">
+    🖨️ پرینت
+  </button>
+</div>
+</body>
+</html>

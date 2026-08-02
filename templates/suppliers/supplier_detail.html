@@ -1,0 +1,573 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block page_title %}{{ supplier.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-workspace"></i></span>
+    {{ supplier.name }}
+    <span style="font-size:12px;color:var(--text-muted);font-weight:400;">{{ supplier.code }}</span>
+  </h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'suppliers:supplier_statement' supplier.pk %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-journal-text"></i> کارنامه
+    </a>
+    <a href="{% url 'purchases:purchase_create' %}" class="btn-erp btn-erp-success">
+      <i class="bi bi-plus-circle"></i> خرید جدید
+    </a>
+    <a href="{% url 'suppliers:supplier_edit' supplier.pk %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+    <a href="{% url 'suppliers:supplier_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<!-- AFN Balance Cards -->
+<div class="stats-grid mb-3">
+  <div class="stat-card {% if supplier.net_balance > 0 %}accent-red{% else %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده حساب (؋)</div>
+        <div class="stat-value" style="font-size:22px;">
+          {{ supplier.net_balance|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {% if supplier.net_balance > 0 %}بدهکاریم{% elif supplier.net_balance < 0 %}بستانکاریم{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if supplier.net_balance > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-wallet2"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی ما (افغانی)</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-red);">
+          {{ supplier.total_debt|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(239,68,68,.12);color:var(--accent-red);">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پیش‌پرداخت ما (افغانی)</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-green);">
+          {{ supplier.advance_balance|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-arrow-down-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- USD Balance Cards -->
+{% if supplier.total_debt_usd > 0 or supplier.advance_balance_usd > 0 %}
+<div class="stats-grid mb-4">
+  <div class="stat-card {% if supplier.net_balance_usd > 0 %}accent-red{% else %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده حساب ($)</div>
+        <div class="stat-value" style="font-size:22px;">
+          {{ supplier.net_balance_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {% if supplier.net_balance_usd > 0 %}بدهکاریم{% elif supplier.net_balance_usd < 0 %}بستانکاریم{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if supplier.net_balance_usd > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی ما (دالر)</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-red);">
+          {{ supplier.total_debt_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(239,68,68,.12);color:var(--accent-red);">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">پیش‌پرداخت ما (دالر)</div>
+        <div class="stat-value" style="font-size:20px;color:var(--accent-green);">
+          {{ supplier.advance_balance_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-arrow-down-circle"></i></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Mutual account -->
+{% if supplier.customer %}
+<div class="erp-card mb-4">
+  <div class="erp-card-header" style="background:rgba(139,92,246,.05);">
+    <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-purple);">
+      <i class="bi bi-arrow-left-right me-2"></i>حساب مشترک
+    </h5>
+  </div>
+  <div class="erp-card-body">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div style="font-size:13px;">
+        این تامین‌کننده همچنین مشتری است —
+        <a href="{% url 'customers:customer_detail' supplier.customer.pk %}"
+           style="color:var(--accent-blue);font-weight:600;">{{ supplier.customer.name }}</a>
+      </div>
+    </div>
+
+    <div class="row g-2 mb-3" style="font-size:12px;">
+      <div class="col-6">
+        <div style="color:var(--text-muted);">بدهی ما به آن‌ها (تامین‌کننده)</div>
+        <strong style="color:var(--accent-red);">
+          {{ supplier.total_debt|floatformat:0|intcomma }} ؋
+          {% if supplier.total_debt_usd > 0 %} / {{ supplier.total_debt_usd|floatformat:2|intcomma }} ${% endif %}
+        </strong>
+      </div>
+      <div class="col-6">
+        <div style="color:var(--text-muted);">بدهی آن‌ها به ما (مشتری)</div>
+        <strong style="color:var(--accent-green);">
+          {{ supplier.customer.total_debt|floatformat:0|intcomma }} ؋
+          {% if supplier.customer.total_debt_usd > 0 %} / {{ supplier.customer.total_debt_usd|floatformat:2|intcomma }} ${% endif %}
+        </strong>
+      </div>
+    </div>
+
+    <div class="mb-3 p-2 rounded" style="background:rgba(139,92,246,.06);font-size:13px;">
+      مانده خالص (؋):
+      <strong style="color:{% if supplier.mutual_net_balance > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+        {{ supplier.mutual_net_balance|floatformat:0|intcomma }}
+      </strong>
+      {% if supplier.mutual_net_balance_usd != 0 %}
+        &nbsp;|&nbsp; ($):
+        <strong style="color:{% if supplier.mutual_net_balance_usd > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ supplier.mutual_net_balance_usd|floatformat:2|intcomma }}
+        </strong>
+      {% endif %}
+    </div>
+
+    {% if supplier.total_debt > 0 and supplier.customer.total_debt > 0 or supplier.total_debt_usd > 0 and supplier.customer.total_debt_usd > 0 %}
+    <form method="post" action="{% url 'suppliers:mutual_offset' supplier.pk %}"
+          onsubmit="return confirm('این مبلغ از هر دو حساب کسر شود؟')">
+      {% csrf_token %}
+      <div class="row g-2 align-items-end">
+        <div class="col-4">
+          <label class="erp-label">واحد پول</label>
+          <select name="currency" class="erp-form-control">
+            {% if supplier.total_debt > 0 and supplier.customer.total_debt > 0 %}
+              <option value="AFN">افغانی ؋</option>
+            {% endif %}
+            {% if supplier.total_debt_usd > 0 and supplier.customer.total_debt_usd > 0 %}
+              <option value="USD">دالر $</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="col-5">
+          <label class="erp-label">مبلغ تهاتر</label>
+          <input type="number" name="amount" class="erp-form-control"
+                 step="0.01" min="0.01" placeholder="0" style="direction:ltr;" required>
+        </div>
+        <div class="col-3">
+          <button type="submit" class="btn-erp btn-erp-primary w-100" style="padding:8px;">
+            <i class="bi bi-arrow-left-right"></i> تهاتر
+          </button>
+        </div>
+      </div>
+    </form>
+    {% else %}
+    <div style="font-size:12px;color:var(--text-muted);">
+      تهاتر در حال حاضر امکان‌پذیر نیست — باید هر دو طرف بدهی داشته باشند.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-4">
+
+    <!-- Profile -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-body" style="padding:20px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:16px;
+                    background:rgba(139,92,246,.12);color:var(--accent-purple);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:26px;font-weight:800;margin:0 auto 14px;">
+          {{ supplier.name|first|upper }}
+        </div>
+        <h5 style="font-weight:800;margin-bottom:6px;">{{ supplier.name }}</h5>
+        {% if supplier.company %}
+          <div style="font-size:12px;color:var(--text-muted);">{{ supplier.company }}</div>
+        {% endif %}
+        <div style="font-size:12px;color:var(--text-muted);">{{ supplier.code }}</div>
+        {% if supplier.phone %}
+          <div style="font-size:13px;margin-top:6px;direction:ltr;">
+            <i class="bi bi-telephone me-1"></i>{{ supplier.phone }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Payment Form -->
+    <div class="erp-card">
+      <div class="erp-card-header" style="background:rgba(239,68,68,.04);">
+        <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-red);">
+          <i class="bi bi-cash-coin me-2"></i>پرداخت به تامین‌کننده
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="make_payment" value="1">
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.currency.label }}</label>
+            {{ payment_form.currency }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.amount.label }}</label>
+            {{ payment_form.amount }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_method.label }}</label>
+            {{ payment_form.payment_method }}
+          </div>
+          <div class="mb-3" id="supplierBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ payment_form.banker_id.label }}</label>
+            {{ payment_form.banker_id }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_date.label }} (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="supDay" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="supMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="supYear" class="erp-form-control" style="padding:8px 4px;"></select>
+            </div>
+            {{ payment_form.payment_date }}
+            {% if payment_form.payment_date.errors %}
+              <div class="erp-field-error">{{ payment_form.payment_date.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.notes.label }}</label>
+            {{ payment_form.notes }}
+          </div>
+          {% if supplier.total_debt > 0 %}
+          <div class="mb-2 p-2 rounded"
+               style="background:rgba(239,68,68,.06);font-size:12px;border:1px solid rgba(239,68,68,.15);">
+            بدهی افغانی: <strong>{{ supplier.total_debt|floatformat:0|intcomma }} ؋</strong>
+          </div>
+          {% endif %}
+          {% if supplier.total_debt_usd > 0 %}
+          <div class="mb-3 p-2 rounded"
+               style="background:rgba(239,68,68,.06);font-size:12px;border:1px solid rgba(239,68,68,.15);">
+            بدهی دالر: <strong>{{ supplier.total_debt_usd|floatformat:2|intcomma }} $</strong>
+          </div>
+          {% endif %}
+          <button type="submit" class="btn-erp btn-erp-danger w-100" style="padding:10px;">
+            <i class="bi bi-check-circle"></i> ثبت پرداخت
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-lg-8">
+
+    <!-- Transactions -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+            <i class="bi bi-arrow-left-right"></i>
+          </span>
+          تراکنش‌های اخیر
+        </h5>
+        <a href="{% url 'suppliers:supplier_statement' supplier.pk %}"
+           class="btn-erp btn-erp-outline" style="font-size:12px;padding:5px 12px;">
+          کارنامه کامل
+        </a>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th><th>نوع</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">بدهی بعد</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in recent_txs %}
+            <tr {% if tx.is_reversed %}style="opacity:.45;"{% endif %}>
+              <td style="font-size:12px;white-space:nowrap;direction:ltr;text-align:right;">
+                {{ tx.transaction_date|jalali }}
+              </td>
+              <td>
+                {% if tx.tx_type == 'purchase' %}
+                  <span class="erp-badge erp-badge-danger">خرید</span>
+                {% elif tx.tx_type == 'payment' %}
+                  <span class="erp-badge erp-badge-success">پرداخت</span>
+                {% elif tx.tx_type == 'advance_add' %}
+                  <span class="erp-badge erp-badge-info">پیش‌پرداخت</span>
+                {% elif tx.tx_type == 'advance_use' %}
+                  <span class="erp-badge erp-badge-warning">کسر پیش</span>
+                {% elif tx.tx_type == 'reversal' %}
+                  <span class="erp-badge erp-badge-gray">برگشت</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-gray">{{ tx.get_tx_type_display }}</span>
+                {% endif %}
+                {% if tx.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+                {% if tx.payment_method == 'saraf' %}
+                  <span class="erp-badge erp-badge-warning" style="font-size:10px;">صراف</span>
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {% if tx.currency == 'USD' %}
+                  {{ tx.amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ tx.amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;font-size:12px;">
+                {% if tx.currency == 'USD' %}
+                  <span style="color:var(--accent-red);">{{ tx.debt_after_usd|floatformat:2|intcomma }} $</span>
+                {% else %}
+                  <span style="color:var(--accent-red);">{{ tx.debt_after|floatformat:0|intcomma }} ؋</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not tx.is_reversed and tx.tx_type != 'purchase' and tx.tx_type != 'reversal' %}
+                <form method="post"
+                      action="{% url 'suppliers:reverse_transaction' tx.pk %}"
+                      onsubmit="return confirm('این تراکنش برگشت داده شود؟')">
+                  {% csrf_token %}
+                  <input type="hidden" name="notes" value="برگشت دستی">
+                  <button class="btn-erp btn-erp-outline" style="padding:3px 8px;font-size:11px;">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-inbox"></i>
+                  <h5>هیچ تراکنشی ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+      </div>
+    </div>
+
+    <!-- Purchase Invoices -->
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+            <i class="bi bi-receipt-cutoff"></i>
+          </span>
+          فاکتورهای خرید اخیر
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>فاکتور</th><th>تاریخ</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">مانده</th>
+              <th style="text-align:center;">وضعیت</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'purchases:purchase_detail' inv.pk %}"
+                   style="font-family:monospace;font-weight:700;
+                          color:var(--accent-blue);text-decoration:none;">
+                  {{ inv.invoice_number }}
+                </a>
+                {% if inv.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px;direction:ltr;text-align:right;">{{ inv.purchase_date|jalali }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:600;">
+                {% if inv.currency == 'USD' %}
+                  {{ inv.total_amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ inv.total_amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;">
+                {% if inv.remaining_amount > 0 %}
+                  <span style="color:var(--accent-red);font-weight:700;">
+                    {% if inv.currency == 'USD' %}
+                      {{ inv.remaining_amount|floatformat:2|intcomma }} $
+                    {% else %}
+                      {{ inv.remaining_amount|floatformat:0|intcomma }} ؋
+                    {% endif %}
+                  </span>
+                {% else %}
+                  <span style="color:var(--accent-green);">—</span>
+                {% endif %}
+              </td>
+              <td style="text-align:center;">
+                {% if inv.status == 'paid' %}
+                  <span class="erp-badge erp-badge-success">کامل</span>
+                {% elif inv.status == 'partial' %}
+                  <span class="erp-badge erp-badge-warning">جزئی</span>
+                {% elif inv.status == 'unpaid' %}
+                  <span class="erp-badge erp-badge-danger">نشده</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-gray">{{ inv.get_status_display }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-receipt-cutoff"></i>
+                  <h5>هیچ فاکتوری ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Required Jalali dropdown picker ──
+const JALALI_MONTHS_SUP = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapSup(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthSup(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapSup(year) ? 30 : 29;
+}
+
+function setupJalaliPickerSup(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_SUP.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthSup(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupJalaliPickerSup('id_payment_date', 'supDay', 'supMonth', 'supYear');
+
+const supplierPaymentMethod = document.getElementById('supplierPaymentMethod');
+const supplierBankerWrapper = document.getElementById('supplierBankerWrapper');
+
+function toggleSupplierBanker() {
+  if (supplierPaymentMethod && supplierPaymentMethod.value === 'saraf') {
+    supplierBankerWrapper.style.display = 'block';
+  } else {
+    supplierBankerWrapper.style.display = 'none';
+  }
+}
+if (supplierPaymentMethod) {
+  supplierPaymentMethod.addEventListener('change', toggleSupplierBanker);
+  toggleSupplierBanker();
+}
+</script>
+{% endblock %}

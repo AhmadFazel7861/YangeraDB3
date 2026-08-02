@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}انبارها{% endblock %}
+{% block page_title %}انبارها{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-building"></i></span>
+    انبارها
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'warehouse:stock_receive' %}" class="btn-erp btn-erp-success">
+      <i class="bi bi-box-arrow-in-down"></i> دریافت موجودی
+    </a>
+    <a href="{% url 'warehouse:warehouse_create' %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-plus-circle"></i> انبار جدید
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for wh in warehouses %}
+  <div class="col-lg-4 col-md-6">
+    <div class="erp-card" style="transition: var(--transition-slow);">
+      <div class="erp-card-body" style="padding:24px;">
+        <div class="d-flex align-items-start justify-content-between mb-3">
+          <div>
+            <h5 style="font-weight:800; font-size:16px; margin-bottom:4px;">
+              {{ wh.name }}
+              {% if wh.is_default %}
+                <span class="erp-badge erp-badge-info" style="font-size:10px;">پیشفرض</span>
+              {% endif %}
+            </h5>
+            {% if wh.location %}
+              <div style="font-size:12px; color:var(--text-muted);">
+                <i class="bi bi-geo-alt me-1"></i>{{ wh.location }}
+              </div>
+            {% endif %}
+          </div>
+          <div style="width:46px;height:46px;border-radius:12px;
+                      background:rgba(59,130,246,.1);color:var(--accent-blue);
+                      display:flex;align-items:center;justify-content:center;font-size:20px;">
+            <i class="bi bi-building"></i>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-4">
+          <div class="col-6">
+            <div style="background:var(--bg-tertiary);border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:20px;font-weight:800;color:var(--text-primary);">
+                {{ wh.total_batches }}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);">بچ فعال</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:var(--bg-tertiary);border-radius:10px;padding:12px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--accent-green);">
+                {{ wh.total_value|floatformat:0|intcomma }}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">ارزش (؋)</div>
+              <div style="font-size:12px;font-weight:700;color:var(--accent-blue);direction:ltr;">
+                ${{ wh.total_value_usd|floatformat:0|intcomma }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'warehouse:warehouse_detail' wh.pk %}"
+             class="btn-erp btn-erp-primary" style="flex:1;justify-content:center;padding:8px;">
+            <i class="bi bi-eye"></i> مشاهده
+          </a>
+          <a href="{% url 'warehouse:warehouse_edit' wh.pk %}"
+             class="btn-erp btn-erp-outline" style="padding:8px 14px;">
+            <i class="bi bi-pencil"></i>
+          </a>
+          {% if not wh.is_default %}
+          <form method="post" action="{% url 'warehouse:warehouse_delete' wh.pk %}"
+                onsubmit="return confirm('انبار «{{ wh.name }}» و تمام موجودی آن حذف شود؟')">
+            {% csrf_token %}
+            <button type="submit" class="btn-erp btn-erp-danger" style="padding:8px 14px;"
+                    title="حذف انبار">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="erp-card">
+      <div class="erp-card-body">
+        <div class="empty-state">
+          <i class="bi bi-building"></i>
+          <h5>هیچ انباری ثبت نشده</h5>
+          <a href="{% url 'warehouse:warehouse_create' %}" class="btn-erp btn-erp-primary mt-2">
+            اولین انبار را ثبت کنید
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

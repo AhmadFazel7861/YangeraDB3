@@ -1,0 +1,778 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>فاکتور {{ invoice.invoice_number }}</title>
+  <style>
+    @font-face { font-family:'Vazirmatn'; src:url('{% static "fonts/Vazirmatn/Vazirmatn-Regular.woff2" %}') format('woff2'); font-weight:400; }
+    @font-face { font-family:'Vazirmatn'; src:url('{% static "fonts/Vazirmatn/Vazirmatn-Bold.woff2" %}') format('woff2'); font-weight:700; }
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+
+    body {
+      font-family:'Vazirmatn',sans-serif;
+      font-size:10.5px; color:#111;
+      background:#ccd5e0; padding:20px; direction:rtl;
+    }
+
+    .page {
+      width:210mm; min-height:297mm; margin:0 auto;
+      background:#fff; position:relative; overflow:hidden;
+      box-shadow:0 0 15px rgba(0,0,0,.12);
+    }
+
+    /* ══ TOP WAVE BANNER ══ */
+    .top-band { width:100%; height:130px; position:relative; overflow:hidden; }
+    .top-band svg { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+    .hd-logo-wrap {
+      position:absolute; top:8px; right:16px; z-index:10;
+      width:68px; height:68px; border-radius:50%; overflow:hidden;
+      border:3px solid #fff; box-shadow:0 2px 10px rgba(0,0,0,.3); background:#fff;
+    }
+    .hd-logo-wrap img { width:100%; height:100%; object-fit:cover; }
+
+    .hd-name-wrap {
+      position:absolute; top:22px; bottom:0;
+      left:90px; right:90px;
+      z-index:10;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      text-align:center; gap:3px;
+    }
+    .hd-name-en  { font-size:12px; font-weight:700; color:#000000; letter-spacing:.12em; direction:ltr; opacity:.85; text-transform:uppercase; }
+    .hd-name-fa  {
+      font-size:22px; font-weight:700; color:#000000;
+      text-shadow:0 1px 0 #ff0707, 0 2px 6px rgba(124, 120, 120, 0.55);
+      line-height:1.2; letter-spacing:.01em;
+    }
+    .hd-addr     { font-size:11px; color:rgba(0, 0, 0, 0.85); line-height:1.4; margin-top:1px; max-width:420px; }
+
+    /* ══ BOTTOM-LEFT CORNER WAVE ══ */
+    .corner-bl {
+      position:absolute; bottom:0; left:0; width:340px; height:115px;
+      overflow:hidden; pointer-events:none; z-index:1;
+    }
+    .corner-bl svg { position:absolute; bottom:0; left:0; width:100%; height:100%; }
+
+    /* ── WATERMARK ── */
+    .watermark {
+      position:absolute; left:50%; top:52%;
+      transform:translate(-50%,-50%); width:380px;
+      opacity:.05; filter:grayscale(100%); z-index:0; pointer-events:none;
+    }
+
+    /* ── BODY ── */
+    .body-wrap { position:relative; z-index:2; padding:10px 18px 64px; display:flex; flex-direction:column; align-items:center; }
+
+    /* ── META BOX ── */
+    .meta-wrap { display:flex; justify-content:center; margin-bottom:8px; width:100%; max-width:760px; }
+    .meta-box { border:1px solid #888; width:420px; }
+    .meta-box .meta-hd {
+      background:#f0f0f0; text-align:center; font-weight:700;
+      font-size:12px; padding:3px 0; border-bottom:1px solid #888;
+    }
+    .meta-box table { border-collapse:collapse; width:100%; }
+    .meta-box th, .meta-box td { border:1px solid #bbb; padding:3px 8px; text-align:center; }
+    .meta-box th { background:#eaf4fb; color:#163d80; font-size:10px; font-weight:700; }
+    .meta-box td { font-size:11.5px; font-weight:700; direction:ltr; }
+
+    /* ── CUSTOMER PANELS ── */
+    .cust-row { display:flex; gap:8px; margin-bottom:8px; width:100%; max-width:760px; }
+    .cust-panel { flex:1; border:1px solid #888; }
+    .cust-panel .cp-hd {
+      background:#f0f0f0; text-align:center; font-weight:700;
+      font-size:10px; padding:3px 8px; border-bottom:1px solid #888;
+    }
+    .cust-panel .cp-body { padding:5px 10px; }
+    .cp-row { display:flex; align-items:baseline; border-bottom:1px solid #e8e8e8; padding:2px 0; gap:6px; }
+    .cp-row:last-child { border-bottom:none; }
+    .cp-lbl { color:#555; white-space:nowrap; min-width:70px; font-size:10px; }
+    .cp-val { font-weight:700; flex:1; font-size:11px; }
+
+    /* ── ITEMS TABLE ── */
+    .tbl { width:100%; border-collapse:collapse; font-size:10.5px; table-layout:fixed; max-width:760px; }
+    .tbl thead th {
+      background:#9ac8dc; color:#000; border:1px solid #888;
+      font-size:11px; font-weight:700; height:22px; text-align:center; vertical-align:middle;
+    }
+    .tbl tbody td {
+      border:1px solid #888; height:19px; padding:2px 6px;
+      text-align:center; vertical-align:middle;
+    }
+    .tbl tbody tr:nth-child(odd)  td { background:#fff; }
+    .tbl tbody tr:nth-child(even) td { background:#f3f9fd; }
+    .tbl tbody tr.empty-row td { background:#fff; }
+    .td-name { text-align:right !important; padding-right:8px !important; font-weight:600; }
+    .td-num  { direction:ltr; }
+    .td-tot  { direction:ltr; font-weight:700; }
+
+    /* ── TOTALS TABLE ── */
+    .totals-table { width:100%; border-collapse:collapse; margin-top:-1px; max-width:760px; }
+    .totals-table .th-wrap {
+      background:#9ac8dc; color:#000; border:1px solid #888;
+      font-weight:700; padding:3px 4px; text-align:center; vertical-align:middle;
+    }
+    .th-main-lbl { font-size:10.5px; font-weight:700; display:block; }
+    .th-cur-badge {
+      display:inline-flex; align-items:center; gap:2px; margin-top:1px;
+    }
+    .th-cur-badge .cflag { font-size:11px; line-height:1; }
+    .th-cur-badge .csym  {
+      font-size:8.5px; font-weight:700; border-radius:3px; padding:1px 3px;
+    }
+    .csym-afn { background:#ddeeff; color:#1a3a6a; }
+    .csym-usd { background:#d4f5df; color:#0a5c1e; }
+
+    .totals-table td {
+      border:1px solid #888; padding:4px 5px;
+      text-align:center; font-weight:700; height:21px; direction:ltr;
+    }
+    /* الباقی column highlighted */
+    .th-albaki {
+      background:#1a4fa0 !important; color:#fff !important;
+    }
+    .td-albaki-usd { color:#fff !important; background:#1a4fa0 !important; font-size:12px; }
+    .td-albaki-afn { color:#fff !important; background:#1a4fa0 !important; font-size:12px; }
+
+    .val-afn { color:#1a3a6a; }
+    .val-usd { color:#0a5c1e; }
+
+    /* ── DATE LINE ── */
+    .date-line { display:flex; justify-content:space-between; font-size:9px; color:#555; margin:7px 0 5px; direction:ltr; width:100%; max-width:760px; }
+
+    /* ── SIGNATURE ── */
+    .sig-wrap { display:flex; justify-content:flex-start; margin-top:4px; width:100%; max-width:760px; }
+    .sig-box { border:1px solid #888; width:150px; height:40px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:3px; }
+    .sig-lbl { font-size:9px; color:#555; }
+
+    /* ══ PAGE FOOTER ══ */
+    .page-footer {
+      position:absolute; bottom:0; left:0; right:0; z-index:3;
+      border-top:2px solid #1a4fa0; background:#fff;
+      padding:6px 18px; display:flex; align-items:center; justify-content:space-between; font-size:9px;
+    }
+    .page-footer::before {
+      content:''; position:absolute; top:-5px; left:0; right:0; height:3px;
+      background:linear-gradient(90deg,#a8892a,#f0d080,#c9a84c,#f0d080,#a8892a);
+    }
+    .ft-left   { font-weight:600; color:#222; }
+    .ft-center { color:#1a4fa0; font-weight:700; }
+    .ft-right  { color:#888; }
+
+    /* ── PRINT BUTTONS ── */
+    .no-print { text-align:center; margin-bottom:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .btn-p { background:#1a4fa0; color:#fff; border:none; padding:9px 28px; border-radius:5px; font-family:'Vazirmatn',sans-serif; font-size:13px; cursor:pointer; }
+    .btn-c { background:#666;    color:#fff; border:none; padding:9px 28px; border-radius:5px; font-family:'Vazirmatn',sans-serif; font-size:13px; cursor:pointer; }
+    /* ── WHATSAPP BUTTON ── */
+    .btn-wa { background:#25D366; color:#fff; border:none; padding:9px 28px; border-radius:5px; font-family:'Vazirmatn',sans-serif; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+    .btn-wa:hover { background:#1ebe5a; }
+
+
+    /* ── WHATSAPP MODAL ── */
+    #wa-modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.55);
+      z-index:9999; align-items:center; justify-content:center;
+    }
+    #wa-modal-overlay.open { display:flex; }
+    #wa-modal {
+      background:#fff; border-radius:12px; padding:28px 32px; width:380px;
+      max-width:95vw; direction:rtl; font-family:'Vazirmatn',sans-serif;
+      box-shadow:0 8px 40px rgba(0,0,0,.25); position:relative;
+    }
+    #wa-modal h3 {
+      font-size:15px; font-weight:700; color:#111; margin-bottom:6px;
+      display:flex; align-items:center; gap:8px;
+    }
+    #wa-modal p { font-size:11px; color:#666; margin-bottom:16px; }
+    #wa-modal label { font-size:12px; font-weight:700; color:#333; display:block; margin-bottom:5px; }
+    #wa-phone-input {
+      width:100%; padding:10px 12px; border:1.5px solid #ccc; border-radius:7px;
+      font-family:'Vazirmatn',sans-serif; font-size:13px; direction:ltr;
+      outline:none; transition:border-color .2s;
+    }
+    #wa-phone-input:focus { border-color:#25D366; }
+    #wa-phone-error { color:#c0392b; font-size:11px; margin-top:5px; display:none; }
+    .wa-modal-btns { display:flex; gap:10px; margin-top:18px; justify-content:flex-end; }
+    .wa-send-btn {
+      background:#25D366; color:#fff; border:none; padding:9px 22px;
+      border-radius:7px; font-family:'Vazirmatn',sans-serif; font-size:13px;
+      cursor:pointer; font-weight:700;
+    }
+    .wa-send-btn:hover { background:#1ebe5a; }
+    .wa-cancel-btn {
+      background:#eee; color:#444; border:none; padding:9px 18px;
+      border-radius:7px; font-family:'Vazirmatn',sans-serif; font-size:13px; cursor:pointer;
+    }
+    .wa-cancel-btn:hover { background:#ddd; }
+    #wa-modal-close {
+      position:absolute; top:12px; left:14px; background:none; border:none;
+      font-size:18px; cursor:pointer; color:#999; line-height:1;
+    }
+
+    @media print {
+      body { background:#fff; padding:0; }
+      .no-print { display:none !important; }
+      #wa-modal-overlay { display:none !important; }
+      .page { box-shadow:none; min-height:0; width:100%; }
+      @page { margin:0; size:A4; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP ACTION BUTTONS ══ -->
+<div class="no-print">
+  <button class="btn-p" onclick="window.print()">🖨️ پرینت</button>
+  <button class="btn-wa" onclick="openWaModal()">
+    <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2C8.268 2 2 8.268 2 16c0 2.522.661 4.888 1.818 6.938L2 30l7.27-1.794A13.927 13.927 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2z" fill="#fff" fill-opacity=".2"/>
+      <path d="M22.003 19.394c-.32-.16-1.894-.934-2.188-1.04-.294-.107-.508-.16-.722.16-.213.32-.828 1.04-.988 1.254-.16.213-.32.24-.64.08-.32-.16-1.35-.498-2.573-1.588-.951-.848-1.592-1.895-1.779-2.215-.186-.32-.02-.493.14-.653.144-.143.32-.373.48-.56.16-.186.213-.32.32-.533.107-.213.053-.4-.027-.56-.08-.16-.722-1.74-.988-2.382-.26-.626-.524-.541-.722-.551-.187-.009-.4-.011-.614-.011-.213 0-.56.08-.854.4-.293.32-1.12 1.094-1.12 2.668 0 1.574 1.147 3.094 1.307 3.307.16.214 2.258 3.448 5.47 4.835.765.33 1.362.527 1.827.674.768.244 1.468.21 2.02.127.616-.092 1.894-.774 2.16-1.521.267-.748.267-1.39.187-1.52-.08-.134-.293-.214-.613-.374z" fill="#fff"/>
+    </svg>
+    ارسال واتساپ
+  </button>
+  <button class="btn-c" onclick="window.close()">بستن</button>
+</div>
+
+<!-- ══ WHATSAPP MODAL ══ -->
+<div id="wa-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wa-modal-title">
+  <div id="wa-modal">
+    <button id="wa-modal-close" onclick="closeWaModal()" aria-label="بستن">✕</button>
+    <h3 id="wa-modal-title">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 2C8.268 2 2 8.268 2 16c0 2.522.661 4.888 1.818 6.938L2 30l7.27-1.794A13.927 13.927 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2z" fill="#25D366"/><path d="M22.003 19.394c-.32-.16-1.894-.934-2.188-1.04-.294-.107-.508-.16-.722.16-.213.32-.828 1.04-.988 1.254-.16.213-.32.24-.64.08-.32-.16-1.35-.498-2.573-1.588-.951-.848-1.592-1.895-1.779-2.215-.186-.32-.02-.493.14-.653.144-.143.32-.373.48-.56.16-.186.213-.32.32-.533.107-.213.053-.4-.027-.56-.08-.16-.722-1.74-.988-2.382-.26-.626-.524-.541-.722-.551-.187-.009-.4-.011-.614-.011-.213 0-.56.08-.854.4-.293.32-1.12 1.094-1.12 2.668 0 1.574 1.147 3.094 1.307 3.307.16.214 2.258 3.448 5.47 4.835.765.33 1.362.527 1.827.674.768.244 1.468.21 2.02.127.616-.092 1.894-.774 2.16-1.521.267-.748.267-1.39.187-1.52-.08-.134-.293-.214-.613-.374z" fill="#fff"/></svg>
+      ارسال فاکتور به واتساپ
+    </h3>
+    <p>شماره واتساپ مشتری را وارد کنید. فاکتور از حساب تجاری شما ارسال خواهد شد.</p>
+    <label for="wa-phone-input">شماره واتساپ مشتری</label>
+    <input
+      id="wa-phone-input"
+      type="tel"
+      placeholder="+93 7XX XXX XXX"
+      autocomplete="tel"
+      inputmode="tel"
+    />
+    <div id="wa-phone-error">لطفاً یک شماره معتبر وارد کنید (مثال: +93791234567)</div>
+    <div class="wa-modal-btns">
+      <button class="wa-cancel-btn" onclick="closeWaModal()">انصراف</button>
+      <button class="wa-send-btn" onclick="sendToWhatsApp()">
+        📤 ارسال فاکتور
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ══ TOP WAVE BANNER ══ -->
+  <div class="top-band">
+    <svg viewBox="0 0 794 88" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,60 C200,14 520,14 794,52 L794,0 L0,0 Z" fill="#2f3293"/>
+      <path d="M0,66 C200,20 520,20 794,58" stroke="#b8822f" stroke-width="10" fill="none"/>
+      <path d="M0,74 C200,28 520,28 794,66" stroke="#e8c97a" stroke-width="4"  fill="none"/>
+    </svg>
+    <div class="hd-logo-wrap">
+      {% if BUSINESS_LOGO %}
+        <img src="{{ BUSINESS_LOGO.url }}" alt="لوگو">
+      {% else %}
+        <img src="{% static 'images/logo.jpeg' %}" alt="لوگو">
+      {% endif %}
+    </div>
+    <div class="hd-name-wrap">
+      <div class="hd-name-fa">{{ BUSINESS_NAME|default:"یانگ‌ایرا راهکارهای فناوری" }}</div>
+      <div class="hd-name-en">{{ BUSINESS_NAME_EN|default:"YangEra Tech solutions" }}</div>
+      <!-- <div class="hd-addr">{{ BUSINESS_ADDRESS|default:"هرات کوچه گدام مجتمع تجارتی تیموریان" }}</div> -->
+    </div>
+  </div>
+
+  <!-- ══ BOTTOM-LEFT CORNER WAVE ══ -->
+  <div class="corner-bl">
+    <svg viewBox="0 0 340 115" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gB" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1a4fa0"/><stop offset="100%" stop-color="#2a6dd4"/>
+        </linearGradient>
+        <linearGradient id="gG" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#c9a84c"/><stop offset="100%" stop-color="#f0d080"/>
+        </linearGradient>
+      </defs>
+      <path d="M0,115 L340,115 L340,80 Q240,40 110,72 Q55,87 0,43 Z" fill="url(#gB)"/>
+      <path d="M0,41 Q55,86 110,70 Q240,38 340,78 L340,68 Q240,29 110,60 Q55,75 0,31 Z" fill="url(#gG)"/>
+    </svg>
+  </div>
+
+  {% if BUSINESS_LOGO %}
+    <img class="watermark" src="{{ BUSINESS_LOGO.url }}" alt="">
+  {% else %}
+    <img class="watermark" src="{% static 'images/logo.png' %}" alt="">
+  {% endif %}
+
+  <!-- ══ BODY ══ -->
+  <div class="body-wrap">
+
+    <!-- META BOX -->
+    <div class="meta-wrap">
+      <div class="meta-box">
+        <div class="meta-hd">فاکتور</div>
+        <table>
+          <thead><tr><th>شماره فاکتور</th><th>تاریخ</th><th>ساعت</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>{{ invoice.invoice_number }}</td>
+              <td id="af-date">{{ invoice.invoice_date|date:"Y-m-d" }}</td>
+              <td id="af-time">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CUSTOMER PANELS -->
+    <div class="cust-row">
+      <div class="cust-panel" style="flex:1.4;">
+        <div class="cp-hd">مشخصات خریدار</div>
+        <div class="cp-body">
+          <div class="cp-row"><span class="cp-lbl">نام :</span><span class="cp-val">{{ invoice.customer.name }}</span></div>
+          <div class="cp-row"><span class="cp-lbl">کد :</span><span class="cp-val">{{ invoice.customer.code }}</span></div>
+        </div>
+      </div>
+      <div class="cust-panel" style="flex:1;">
+        <div class="cp-hd">آدرس خریدار</div>
+        <div class="cp-body">
+          <div class="cp-row"><span class="cp-lbl">آدرس :</span><span class="cp-val">{{ invoice.customer.address|default:"&mdash;" }}</span></div>
+          <div class="cp-row"><span class="cp-lbl">شماره تماس :</span><span class="cp-val" style="direction:ltr;">{{ invoice.customer.phone|default:"&mdash;" }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEMS TABLE -->
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:7%">شماره</th>
+          <th style="width:30%">جنس</th>
+          <th style="width:13%">مقدار</th>
+          <th style="width:10%">واحد</th>
+          <th style="width:20%">
+            نرخ
+            {% if invoice.currency == "USD" %}<span style="font-size:8px;font-weight:400;">(USD)</span>
+            {% else %}<span style="font-size:8px;font-weight:400;">(AFN)</span>{% endif %}
+          </th>
+          <th style="width:20%">
+            مجموع
+            {% if invoice.currency == "USD" %}<span style="font-size:8px;font-weight:400;">(USD)</span>
+            {% else %}<span style="font-size:8px;font-weight:400;">(AFN)</span>{% endif %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in invoice.items.all %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td class="td-name">{{ item.product.name }}</td>
+          <td class="td-num">{{ item.quantity|floatformat:0|intcomma }}</td>
+          <td>
+            {% if item.product.unit %}{{ item.product.unit }}
+            {% elif item.product.unit_name %}{{ item.product.unit_name }}
+            {% elif item.product.uom %}{{ item.product.uom }}
+            {% elif item.product.measure %}{{ item.product.measure }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="td-num">
+            {% if invoice.currency == "USD" %}$ {% endif %}{{ item.unit_price|floatformat:2|intcomma }}
+          </td>
+          <td class="td-tot">
+            {% if invoice.currency == "USD" %}$ {% endif %}{{ item.line_total|floatformat:2|intcomma }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- ══ TOTALS TABLE ══ -->
+    <table class="totals-table">
+      <thead>
+        <tr>
+          <th class="th-wrap">
+            <span class="th-main-lbl">تخفیف</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+          <th class="th-wrap">
+            <span class="th-main-lbl">مجموع</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+          <th class="th-wrap">
+            <span class="th-main-lbl">حساب سابقه</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+          <th class="th-wrap">
+            <span class="th-main-lbl">مبلغ قابل پرداخت</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+          <th class="th-wrap">
+            <span class="th-main-lbl">رسید</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+          <th class="th-wrap th-albaki">
+            <span class="th-main-lbl">الباقی</span>
+            <span class="th-cur-badge">
+              {% if invoice.currency == "USD" %}
+                <span class="cflag">🇺🇸</span><span class="csym csym-usd">USD</span>
+              {% else %}
+                <span class="cflag">🇦🇫</span><span class="csym csym-afn">AFN</span>
+              {% endif %}
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% if invoice.currency == "USD" %}
+            <td class="val-usd">$ {{ invoice.discount_amount|floatformat:2|intcomma }}</td>
+            <td class="val-usd">$ {{ invoice.total_amount|floatformat:2|intcomma }}</td>
+            <td class="val-usd">$ {{ current_previous_debt|floatformat:2|intcomma }}</td>
+            <td class="val-usd" id="mablagh-usd">—</td>
+            <td class="val-usd">$ {{ invoice.paid_amount|floatformat:2|intcomma }}</td>
+            <td class="td-albaki-usd" id="albaqi-usd">—</td>
+          {% else %}
+            <td class="val-afn">{{ invoice.discount_amount|default:0|floatformat:0|intcomma }}</td>
+            <td class="val-afn">{{ invoice.total_amount|floatformat:0|intcomma }}</td>
+            <td class="val-afn">{{ current_previous_debt|default:0|floatformat:0|intcomma }}</td>
+            <td class="val-afn" id="mablagh-afn">—</td>
+            <td class="val-afn">{{ invoice.paid_amount|floatformat:0|intcomma }}</td>
+            <td class="td-albaki-afn" id="albaqi-afn">—</td>
+          {% endif %}
+        </tr>
+      </tbody>
+    </table>
+
+    {% if invoice.notes %}
+    <div style="border:1px solid #888;border-top:none;padding:5px 10px;font-size:10px;">
+      <strong>یادداشت:</strong> {{ invoice.notes }}
+    </div>
+    {% endif %}
+
+    {% if INVOICE_FOOTER_TEXT %}
+    <div style="text-align:center;font-size:10px;color:#555;margin-top:6px;padding:5px;border-top:1px dashed #ccc;">
+      {{ INVOICE_FOOTER_TEXT }}
+    </div>
+    {% endif %}
+
+    <div class="date-line">
+      <span id="footer-time"></span>
+      <span id="footer-date"></span>
+    </div>
+
+    <div class="sig-wrap">
+      <div class="sig-box"><div class="sig-lbl">امضا فروشنده</div></div>
+    </div>
+
+  </div><!-- /body-wrap -->
+
+  <div class="page-footer">
+    <div class="ft-left">📞 {{ BUSINESS_PHONE_1|default:"0791810095" }} &nbsp;&nbsp;  {{ BUSINESS_PHONE_2|default:"" }}</div>
+    <div class="ft-center">{{ BUSINESS_NAME|default:"یانگ‌ایرا راهکارهای فناوری" }}</div>
+    <div class="ft-right">Powered By {{ DESIGNER_CREDIT|default:"YangEra" }}</div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+(function(){
+  try {
+    /* ── Time ── */
+    const savedTime = "{{ invoice.created_at|date:'h:i A'|escapejs }}";
+    const timeStr = savedTime || '—';
+    document.getElementById('af-time').textContent = timeStr;
+    if(document.getElementById('footer-time'))
+      document.getElementById('footer-time').textContent = 'ساعت: '+timeStr;
+
+    function toShamsi(gy,gm,gd){
+      function isLeapG(y){ return (y%4===0&&y%100!==0)||y%400===0; }
+      function dimG(m,y){ return [0,31,isLeapG(y)?29:28,31,30,31,30,31,31,30,31,30,31][m]; }
+      function isLeapJ(y){ return [1,5,9,13,17,22,26,30].indexOf(y%33)!==-1; }
+      function dimJ(m,y){ if(m<=6)return 31; if(m<=11)return 30; return isLeapJ(y)?30:29; }
+      function gDays(gy,gm,gd){
+        var d=(gy-2000)*365;
+        for(var y=2000;y<gy;y++) if(isLeapG(y)) d++;
+        for(var i=1;i<gm;i++) d+=dimG(i,gy);
+        return d+gd;
+      }
+      var jy=1378,jm=10,jd=11;
+      var diff=gDays(gy,gm,gd)-gDays(2000,1,1);
+      if(diff>=0){
+        while(diff>=dimJ(jm,jy)){diff-=dimJ(jm,jy);jm++;if(jm>12){jm=1;jy++;}}
+        jd+=diff;
+        if(jd>dimJ(jm,jy)){jd-=dimJ(jm,jy);jm++;if(jm>12){jm=1;jy++;}}
+      } else {
+        diff=-diff;
+        while(diff>0){jd--;diff--;if(jd<1){jm--;if(jm<1){jm=12;jy--;}jd=dimJ(jm,jy);}}
+      }
+      return {y:jy,m:jm,d:jd};
+    }
+    const dateEl = document.getElementById('af-date');
+    const raw    = (dateEl.textContent||'').trim();
+    const match  = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var shamsiStr = '';
+    if(match){
+      const s = toShamsi(+match[1],+match[2],+match[3]);
+      shamsiStr = s.d+'/'+s.m+'/'+s.y;
+      dateEl.textContent = shamsiStr;
+    } else {
+      dateEl.textContent = raw || '—';
+      shamsiStr = raw || '—';
+    }
+    if(document.getElementById('footer-date'))
+      document.getElementById('footer-date').textContent = 'تاریخ: '+shamsiStr;
+
+    /* ── Compute مبلغ قابل پرداخت and الباقی ── */
+    const totalAmount   = parseFloat("{{ invoice.total_amount|default:0|escapejs }}") || 0;
+    const previousDebt  = parseFloat("{{ current_previous_debt|default:0|escapejs }}") || 0;
+    const paidAmount    = parseFloat("{{ invoice.paid_amount|default:0|escapejs }}") || 0;
+    const remainingAmt  = parseFloat("{{ invoice.remaining_amount|default:0|escapejs }}") || 0;
+
+    const mablagh = totalAmount + previousDebt;
+    const albaqi  = remainingAmt + previousDebt;
+
+    function fmt(val, isUsdFlag){
+      if(isUsdFlag){
+        return '$ ' + val.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      } else {
+        return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      }
+    }
+
+    const isUsd = "{{ invoice.currency|escapejs }}" === "USD";
+
+    const mablaghUsd = document.getElementById('mablagh-usd');
+    const mablaghAfn = document.getElementById('mablagh-afn');
+    const albaqiUsd  = document.getElementById('albaqi-usd');
+    const albaqiAfn  = document.getElementById('albaqi-afn');
+
+    if(mablaghUsd) mablaghUsd.textContent = fmt(mablagh, true);
+    if(mablaghAfn) mablaghAfn.textContent = fmt(mablagh, false);
+    if(albaqiUsd)  albaqiUsd.textContent  = fmt(albaqi,  true);
+    if(albaqiAfn)  albaqiAfn.textContent  = fmt(albaqi,  false);
+
+    /* ── Expose invoice data for WhatsApp message builder ── */
+    const itemRows = [];
+    document.querySelectorAll('.tbl tbody tr').forEach(function(tr, idx){
+      const cells = tr.querySelectorAll('td');
+      if(cells.length >= 6){
+        itemRows.push({
+          num   : cells[0].textContent.trim(),
+          name  : cells[1].textContent.trim(),
+          qty   : cells[2].textContent.trim(),
+          unit  : cells[3].textContent.trim(),
+          price : cells[4].textContent.trim(),
+          total : cells[5].textContent.trim(),
+        });
+      }
+    });
+
+    window.__invoiceData = {
+      number      : "{{ invoice.invoice_number|escapejs }}",
+      date        : shamsiStr,
+      time        : timeStr,
+      customer    : "{{ invoice.customer.name|escapejs }}",
+      customerAddr: "{{ invoice.customer.address|default:'—'|escapejs }}",
+      customerPhone:"{{ invoice.customer.phone|default:'—'|escapejs }}",
+      code        : "{{ invoice.customer.code|escapejs }}",
+      currency    : "{{ invoice.currency|escapejs }}",
+      total       : totalAmount,
+      prevDebt    : previousDebt,
+      paid        : paidAmount,
+      mablagh     : mablagh,
+      albaqi      : albaqi,
+      discount    : parseFloat("{{ invoice.discount_amount|default:0|escapejs }}") || 0,
+      business    : "{{ BUSINESS_NAME|default:'یانگ‌ایرا راهکارهای فناوری'|escapejs }}",
+      businessEn  : "{{ BUSINESS_NAME_EN|default:'YangEra Tech solutions'|escapejs }}",
+      // businessAddr: "{{ BUSINESS_ADDRESS|default:'هرات کوچه گدام مجتمع تجارتی تیموریان'|escapejs }}",
+      phone1      : "{{ BUSINESS_PHONE_1|default:'0791810095'|escapejs }}",
+      // phone2      : "{{ BUSINESS_PHONE_2|default:'0790090032'|escapejs }}",
+      items       : itemRows,
+      pageUrl     : window.location.href
+    };
+
+  } catch (err) {
+    console.error('Invoice print script error:', err);
+  }
+})();
+
+const sp=new URLSearchParams(location.search);
+if(sp.get('autoprint')==='1') window.print();
+
+/* ══ WHATSAPP MODAL FUNCTIONS ══ */
+
+function openWaModal() {
+  const custPhone = "{{ invoice.customer.phone|default:''|escapejs }}".trim();
+
+  /* ── If customer already has a phone number, skip the modal and send directly ── */
+  if (custPhone && custPhone !== '—' && custPhone !== '') {
+    const phone = sanitizePhone(custPhone);
+    if (isValidPhone(phone)) {
+      const data    = window.__invoiceData;
+      const message = buildWhatsAppMessage(data);
+      const customerPhone = phone.replace(/^\+/, '');
+      const waUrl = 'https://web.whatsapp.com/send?phone=' + customerPhone
+                  + '&text=' + encodeURIComponent(message)
+                  + '&app_absent=0';
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+  }
+
+  /* ── No phone on file — show modal to enter it manually ── */
+  const overlay = document.getElementById('wa-modal-overlay');
+  overlay.classList.add('open');
+  const inp = document.getElementById('wa-phone-input');
+  inp.value = '';
+  document.getElementById('wa-phone-error').style.display = 'none';
+  setTimeout(() => inp.focus(), 80);
+}
+
+function closeWaModal() {
+  document.getElementById('wa-modal-overlay').classList.remove('open');
+}
+
+/* Close on overlay background click */
+document.getElementById('wa-modal-overlay').addEventListener('click', function(e){
+  if (e.target === this) closeWaModal();
+});
+
+/* Close on Escape key */
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeWaModal();
+});
+
+function sanitizePhone(raw) {
+  let p = raw.replace(/[\s\-().]/g, '');
+  if (p.startsWith('00')) p = '+' + p.slice(2);
+  if (p.startsWith('0') && !p.startsWith('+')) p = '+93' + p.slice(1);
+  if (/^\d+$/.test(p)) p = '+93' + p;
+  return p;
+}
+
+function isValidPhone(p) {
+  return /^\+\d{7,15}$/.test(p);
+}
+
+function buildWhatsAppMessage(data) {
+  const cur  = data.currency;
+  const sym  = cur === 'USD' ? '$' : 'AFN';
+  const flag = cur === 'USD' ? '🇺🇸' : '🇦🇫';
+
+  function fmtN(v) {
+    if (cur === 'USD') {
+      return '$ ' + parseFloat(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    } else {
+      return Math.round(parseFloat(v)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' AFN';
+    }
+  }
+
+  const lines = [
+    '🏢 *' + data.business + '*',
+    '📍 ' + data.businessAddr + ' | 📞 ' + data.phone1,
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    '🧾 *' + data.number + '* | 📅 ' + data.date + ' ⏰ ' + data.time,
+    '👤 *' + data.customer + '* | ' + data.code + ' | 📞 ' + (data.customerPhone || '—'),
+    '',
+  ];
+
+  if (data.items && data.items.length > 0) {
+    lines.push('🛒 *اجناس خریداری شده* ' + flag + ' ' + cur);
+    lines.push('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄');
+    data.items.forEach(function(item) {
+      lines.push(
+        '  ' + item.num + '. *' + item.name + '*',
+        '      مقدار: ' + item.qty + ' ' + item.unit +
+        '   |   نرخ: ' + item.price +
+        '   |   مجموع: *' + item.total + '*'
+      );
+    });
+    lines.push('');
+  }
+
+  lines.push(
+    '💵 *خلاصه مالی* ' + flag + ' ' + cur,
+    '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄',
+    '  🏷️  تخفیف:              ' + fmtN(data.discount),
+    '  💰  مجموع فاکتور:       ' + fmtN(data.total),
+    '  📋  حساب سابقه:         ' + fmtN(data.prevDebt),
+    '  📊  مبلغ قابل پرداخت:  *' + fmtN(data.mablagh) + '*',
+    '  ✅  رسید پرداخت:        ' + fmtN(data.paid),
+    '  🔴  *الباقی:            ' + fmtN(data.albaqi) + '*',
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━━━',
+    '🙏 با تشکر از خرید شما'
+  );
+
+  return lines.join('\n');
+}
+
+function sendToWhatsApp() {
+  const rawInput  = document.getElementById('wa-phone-input').value.trim();
+  const errEl     = document.getElementById('wa-phone-error');
+
+  if (!rawInput) {
+    errEl.textContent = 'لطفاً شماره واتساپ مشتری را وارد کنید.';
+    errEl.style.display = 'block';
+    document.getElementById('wa-phone-input').focus();
+    return;
+  }
+
+  const phone = sanitizePhone(rawInput);
+
+  if (!isValidPhone(phone)) {
+    errEl.textContent = 'شماره نامعتبر است. مثال صحیح: +93791234567 یا 0791234567';
+    errEl.style.display = 'block';
+    document.getElementById('wa-phone-input').focus();
+    return;
+  }
+
+  errEl.style.display = 'none';
+
+  const data    = window.__invoiceData;
+  const message = buildWhatsAppMessage(data);
+
+  const customerPhone = phone.replace(/^\+/, '');
+  const waUrl = 'https://web.whatsapp.com/send?phone=' + customerPhone
+              + '&text=' + encodeURIComponent(message)
+              + '&app_absent=0';
+
+  closeWaModal();
+  window.open(waUrl, '_blank', 'noopener,noreferrer');
+}
+</script>
+</body>
+</html>

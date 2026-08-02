@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}هشدارها{% endblock %}
+{% block page_title %}هشدارها{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-bell"></i></span>
+    هشدارها
+    {% if counts.total_unread %}
+      <span class="erp-badge erp-badge-danger" style="font-size:13px;">
+        {{ counts.total_unread }} خوانده نشده
+      </span>
+    {% endif %}
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'alerts:refresh' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-clockwise"></i> بروزرسانی
+    </a>
+    {% if counts.total_unread %}
+    <form method="post" action="{% url 'alerts:mark_all_read' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-erp btn-erp-primary">
+        <i class="bi bi-check-all"></i> همه را خوانده کن
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بحرانی</div>
+        <div class="stat-value">{{ counts.critical }}</div>
+        <div class="stat-sub">هشدار</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-x-octagon-fill"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">هشدار</div>
+        <div class="stat-value" style="color:var(--accent-orange);">
+          {{ counts.warning }}
+        </div>
+        <div class="stat-sub">هشدار</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع خوانده نشده</div>
+        <div class="stat-value">{{ counts.total_unread }}</div>
+        <div class="stat-sub">هشدار</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(59,130,246,.12);color:var(--accent-blue);">
+        <i class="bi bi-bell-fill"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <select name="type" class="erp-form-control" style="width:180px;"
+              onchange="this.form.submit()">
+        <option value="">همه انواع</option>
+        {% for val, label in alert_types %}
+          <option value="{{ val }}"
+            {% if alert_type == val %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      <select name="severity" class="erp-form-control" style="width:150px;"
+              onchange="this.form.submit()">
+        <option value="">همه شدت‌ها</option>
+        {% for val, label in severity_choices %}
+          <option value="{{ val }}"
+            {% if severity == val %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+      <div class="d-flex align-items-center gap-2">
+        <input type="checkbox" name="show_read" value="1"
+               class="form-check-input" id="showReadChk"
+               {% if show_read %}checked{% endif %}
+               onchange="this.form.submit()">
+        <label for="showReadChk"
+               style="font-size:13px;cursor:pointer;">
+          نمایش خوانده شده‌ها
+        </label>
+      </div>
+      {% if alert_type or severity %}
+        <a href="{% url 'alerts:alert_list' %}"
+           class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Alert List -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    {% for alert in alerts %}
+    <div class="alert-item {% if alert.is_read %}alert-read{% endif %}"
+         id="alert-{{ alert.pk }}"
+         style="padding:16px 20px;
+                border-bottom:1px solid var(--border-color);
+                {% if alert.is_read %}opacity:.6;{% endif %}
+                transition:var(--transition);">
+      <div class="d-flex align-items-start gap-3">
+
+        <!-- Icon -->
+        <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:18px;
+                    {% if alert.severity == 'critical' %}
+                      background:rgba(239,68,68,.12);color:var(--accent-red);
+                    {% elif alert.severity == 'warning' %}
+                      background:rgba(245,158,11,.12);color:var(--accent-orange);
+                    {% else %}
+                      background:rgba(59,130,246,.12);color:var(--accent-blue);
+                    {% endif %}">
+          <i class="bi {{ alert.severity_icon }}"></i>
+        </div>
+
+        <!-- Content -->
+        <div style="flex:1;">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <strong style="font-size:14px;">{{ alert.title }}</strong>
+            {% if alert.severity == 'critical' %}
+              <span class="erp-badge erp-badge-danger">بحرانی</span>
+            {% elif alert.severity == 'warning' %}
+              <span class="erp-badge erp-badge-warning">هشدار</span>
+            {% else %}
+              <span class="erp-badge erp-badge-info">اطلاعات</span>
+            {% endif %}
+            <span class="erp-badge erp-badge-gray" style="font-size:10px;">
+              {{ alert.get_alert_type_display }}
+            </span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">
+            {{ alert.message }}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">
+            {{ alert.created_at|timesince }} پیش
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-1 flex-shrink-0">
+          {% if alert.reference_url %}
+          <a href="{{ alert.reference_url }}"
+             class="btn-erp btn-erp-outline"
+             style="padding:4px 10px;font-size:12px;" title="مشاهده">
+            <i class="bi bi-eye"></i>
+          </a>
+          {% endif %}
+          {% if not alert.is_read %}
+          <form method="post" action="{% url 'alerts:mark_read' alert.pk %}">
+            {% csrf_token %}
+            <button class="btn-erp btn-erp-outline"
+                    style="padding:4px 10px;font-size:12px;" title="خوانده شد">
+              <i class="bi bi-check2"></i>
+            </button>
+          </form>
+          {% endif %}
+          <form method="post" action="{% url 'alerts:dismiss' alert.pk %}">
+            {% csrf_token %}
+            <button class="btn-erp btn-erp-outline"
+                    style="padding:4px 10px;font-size:12px;" title="رد کردن">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-state" style="padding:60px;">
+      <i class="bi bi-check-circle-fill"
+         style="color:var(--accent-green);opacity:1;font-size:56px;"></i>
+      <h5 style="color:var(--accent-green);margin-top:16px;">
+        هیچ هشداری وجود ندارد!
+      </h5>
+      <p style="color:var(--text-muted);font-size:13px;">
+        سیستم در وضعیت خوبی قرار دارد.
+      </p>
+    </div>
+    {% endfor %}
+
+    {% if alerts.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      {% include 'partials/pagination.html' with page=alerts %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh alert count in navbar every 60 seconds
+setInterval(function() {
+  fetch('/alerts/api/count/')
+    .then(r => r.json())
+    .then(data => {
+      // Update navbar badge if it exists
+      const bell = document.querySelector('.navbar-btn .bi-bell, .navbar-btn .bi-bell-fill');
+      if (bell) {
+        const badge = bell.parentElement.querySelector('span[style]');
+        if (data.count > 0) {
+          bell.className = 'bi bi-bell-fill';
+          if (badge) {
+            badge.textContent = data.count > 99 ? '99+' : data.count;
+          }
+        } else {
+          bell.className = 'bi bi-bell';
+        }
+      }
+    })
+    .catch(() => {}); // Fail silently
+}, 60000);
+</script>
+{% endblock %}

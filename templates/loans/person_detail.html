@@ -1,0 +1,483 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ person.name }}{% endblock %}
+{% block page_title %}{{ person.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-badge"></i></span>
+    {{ person.name }}
+    {% if not person.is_active %}
+      <span class="erp-badge erp-badge-gray" style="font-size:12px;">غیرفعال</span>
+    {% endif %}
+  </h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'loans:person_edit' person.pk %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+    <a href="{% url 'loans:person_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<!-- Balance Cards -->
+<div class="stats-grid mb-4">
+
+  <!-- AFN balance -->
+  <div class="stat-card {% if person.balance_afn > 0 %}accent-red{% elif person.balance_afn < 0 %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده قرضه (افغانی)</div>
+        <div class="stat-value" style="font-size:22px;">
+          {{ person.balance_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {% if person.balance_afn > 0 %}بدهکار است{% elif person.balance_afn < 0 %}اضافه پرداخت{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if person.balance_afn > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-wallet2"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- USD balance -->
+  <div class="stat-card {% if person.balance_usd > 0 %}accent-red{% elif person.balance_usd < 0 %}accent-green{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده قرضه (دالر)</div>
+        <div class="stat-value" style="font-size:22px;">
+          {{ person.balance_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {% if person.balance_usd > 0 %}بدهکار است{% elif person.balance_usd < 0 %}اضافه پرداخت{% else %}تسویه{% endif %}
+        </div>
+      </div>
+      <div class="stat-card-icon {% if person.balance_usd > 0 %}accent-red{% else %}accent-green{% endif %}">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction count -->
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">تعداد تراکنش‌ها</div>
+        <div class="stat-value" style="font-size:22px;">{{ transactions|length }}</div>
+        <div class="stat-sub">کل تراکنش‌های ثبت‌شده</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-arrow-left-right"></i>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row g-4">
+
+  <!-- Left column: profile + forms -->
+  <div class="col-lg-4">
+
+    <!-- Profile card -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-body" style="padding:20px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:16px;
+                    background:rgba(59,130,246,.12);color:var(--accent-blue);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:28px;font-weight:800;margin:0 auto 14px;">
+          {{ person.name|first|upper }}
+        </div>
+        <h5 style="font-weight:800;margin-bottom:6px;">{{ person.name }}</h5>
+        {% if person.phone %}
+          <div style="font-size:13px;margin-top:6px;direction:ltr;">
+            <i class="bi bi-telephone me-1"></i>{{ person.phone }}
+          </div>
+        {% endif %}
+        {% if person.notes %}
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px;
+                      background:var(--bg-secondary);border-radius:8px;padding:8px 12px;text-align:right;">
+            {{ person.notes }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Give Loan Form -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header" style="background:rgba(239,68,68,.04);">
+        <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-red);">
+          <i class="bi bi-arrow-up-circle me-2"></i>ثبت قرضه داده‌شده
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" id="giveLoanForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="give_loan">
+
+          <div class="mb-3">
+            <label class="erp-label">{{ give_form.currency.label }}</label>
+            {{ give_form.currency }}
+            {% if give_form.currency.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ give_form.currency.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ give_form.amount.label }} <span style="color:var(--accent-red);">*</span></label>
+            {{ give_form.amount }}
+            {% if give_form.amount.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ give_form.amount.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ give_form.payment_method.label }}</label>
+            {{ give_form.payment_method }}
+          </div>
+
+          <div class="mb-3" id="giveBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ give_form.banker_id.label }}</label>
+            {{ give_form.banker_id }}
+            {% if give_form.banker_id.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ give_form.banker_id.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ give_form.transaction_date.label }} (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="giveDay" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="giveMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="giveYear" class="erp-form-control" style="padding:8px 4px;"></select>
+            </div>
+            {{ give_form.transaction_date }}
+            {% if give_form.transaction_date.errors %}
+              <div class="erp-field-error" style="color:var(--accent-red);font-size:12px;">
+                {{ give_form.transaction_date.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ give_form.notes.label }}</label>
+            {{ give_form.notes }}
+          </div>
+
+          <button type="submit" class="btn-erp btn-erp-danger w-100" style="padding:10px;">
+            <i class="bi bi-arrow-up-circle"></i> ثبت قرضه
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Repayment Form -->
+    <div class="erp-card">
+      <div class="erp-card-header" style="background:rgba(16,185,129,.04);">
+        <h5 class="erp-card-title" style="font-size:13px;color:var(--accent-green);">
+          <i class="bi bi-arrow-down-circle me-2"></i>ثبت بازپرداخت
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" id="repaymentForm">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="repayment">
+
+          <div class="mb-3">
+            <label class="erp-label">{{ rep_form.currency.label }}</label>
+            {{ rep_form.currency }}
+            {% if rep_form.currency.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ rep_form.currency.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ rep_form.amount.label }} <span style="color:var(--accent-red);">*</span></label>
+            {{ rep_form.amount }}
+            {% if rep_form.amount.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ rep_form.amount.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ rep_form.payment_method.label }}</label>
+            {{ rep_form.payment_method }}
+          </div>
+
+          <div class="mb-3" id="repBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ rep_form.banker_id.label }}</label>
+            {{ rep_form.banker_id }}
+            {% if rep_form.banker_id.errors %}
+              <div style="color:var(--accent-red);font-size:12px;">{{ rep_form.banker_id.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ rep_form.transaction_date.label }} (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="repDay" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="repMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+              <select id="repYear" class="erp-form-control" style="padding:8px 4px;"></select>
+            </div>
+            {{ rep_form.transaction_date }}
+            {% if rep_form.transaction_date.errors %}
+              <div class="erp-field-error" style="color:var(--accent-red);font-size:12px;">
+                {{ rep_form.transaction_date.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">{{ rep_form.notes.label }}</label>
+            {{ rep_form.notes }}
+          </div>
+
+          <button type="submit" class="btn-erp btn-erp-success w-100" style="padding:10px;">
+            <i class="bi bi-arrow-down-circle"></i> ثبت بازپرداخت
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right column: transaction history -->
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-clock-history"></i>
+          </span>
+          تاریخچه تراکنش‌ها
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>نوع</th>
+              <th>روش</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">مانده بعد</th>
+              <th>یادداشت</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in transactions %}
+            <tr {% if tx.is_reversed %}style="opacity:.45;text-decoration:line-through;"{% endif %}>
+
+              <td style="font-size:12px;white-space:nowrap;">{{ tx.transaction_date }}</td>
+
+              <!-- Type badge -->
+              <td>
+                {% if tx.tx_type == 'given' %}
+                  <span class="erp-badge erp-badge-danger">قرضه داد</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-success">بازپرداخت</span>
+                {% endif %}
+                {% if tx.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+              </td>
+
+              <!-- Payment method badge -->
+              <td>
+                {% if tx.payment_method == 'cash' %}
+                  <span class="erp-badge erp-badge-gray">نقدی</span>
+                {% elif tx.payment_method == 'saraf' %}
+                  <span class="erp-badge erp-badge-warning">
+                    صراف{% if tx.banker %}: {{ tx.banker.name }}{% endif %}
+                  </span>
+                {% elif tx.payment_method == 'dakkan' %}
+                  <span class="erp-badge erp-badge-info">دخل دکان</span>
+                {% endif %}
+              </td>
+
+              <!-- Amount -->
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {% if tx.currency == 'USD' %}
+                  {{ tx.amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ tx.amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+
+              <!-- Balance after -->
+              <td style="text-align:left;direction:ltr;font-size:12px;">
+                {% if tx.currency == 'USD' %}
+                  <span {% if tx.balance_after_usd > 0 %}style="color:var(--accent-red);"{% else %}style="color:var(--accent-green);"{% endif %}>
+                    {{ tx.balance_after_usd|floatformat:2|intcomma }} $
+                  </span>
+                  {% if tx.balance_after_afn != 0 %}
+                    <div style="font-size:10px;color:var(--text-muted);">{{ tx.balance_after_afn|floatformat:0|intcomma }} ؋</div>
+                  {% endif %}
+                {% else %}
+                  <span {% if tx.balance_after_afn > 0 %}style="color:var(--accent-red);"{% else %}style="color:var(--accent-green);"{% endif %}>
+                    {{ tx.balance_after_afn|floatformat:0|intcomma }} ؋
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Notes -->
+              <td style="font-size:11px;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                {{ tx.notes|default:"—" }}
+              </td>
+
+              <!-- Reverse action -->
+              <td>
+                {% if not tx.is_reversed %}
+                <form method="post"
+                      action="{% url 'loans:reverse_transaction' tx.pk %}"
+                      onsubmit="return confirm('این تراکنش برگشت داده شود؟ این عمل قابل بازگشت نیست.')">
+                  {% csrf_token %}
+                  <input type="hidden" name="notes" value="برگشت دستی">
+                  <button class="btn-erp btn-erp-outline"
+                          style="padding:3px 8px;font-size:11px;" title="برگشت تراکنش">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+                {% else %}
+                  <span style="font-size:11px;color:var(--text-muted);">برگشت</span>
+                {% endif %}
+              </td>
+
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-inbox"></i>
+                  <h5>هیچ تراکنشی ثبت نشده</h5>
+                  <p style="color:var(--text-muted);font-size:13px;">
+                    از فرم‌های سمت چپ قرضه یا بازپرداخت ثبت کنید.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Give Loan Form: show/hide banker select ──
+const giveMethodSelect = document.getElementById('giveMethodSelect');
+const giveBankerWrap   = document.getElementById('giveBankerWrapper');
+
+function toggleGiveBanker() {
+  if (giveMethodSelect) {
+    giveBankerWrap.style.display =
+      giveMethodSelect.value === 'saraf' ? 'block' : 'none';
+  }
+}
+if (giveMethodSelect) {
+  giveMethodSelect.addEventListener('change', toggleGiveBanker);
+  toggleGiveBanker();
+}
+
+// ── Repayment Form: show/hide banker select ──
+const repMethodSelect = document.getElementById('repMethodSelect');
+const repBankerWrap   = document.getElementById('repBankerWrapper');
+
+function toggleRepBanker() {
+  if (repMethodSelect) {
+    repBankerWrap.style.display =
+      repMethodSelect.value === 'saraf' ? 'block' : 'none';
+  }
+}
+if (repMethodSelect) {
+  repMethodSelect.addEventListener('change', toggleRepBanker);
+  toggleRepBanker();
+}
+
+// ── Required Jalali dropdown picker (same logic as supplier_detail.html) ──
+const JALALI_MONTHS_LOAN = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapLoan(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthLoan(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapLoan(year) ? 30 : 29;
+}
+
+function setupJalaliPickerLoan(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+  if (!hidden || !daySel || !monthSel || !yearSel) return;
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_LOAN.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthLoan(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupJalaliPickerLoan('id_give_transaction_date', 'giveDay', 'giveMonth', 'giveYear');
+setupJalaliPickerLoan('id_rep_transaction_date', 'repDay', 'repMonth', 'repYear');
+</script>
+{% endblock %}

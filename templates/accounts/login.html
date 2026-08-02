@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ورود به سیستم — {{ BUSINESS_NAME }}</title>
+
+  <link rel="stylesheet" href="{% static 'css/bootstrap.rtl.min.css' %}">
+  <link rel="stylesheet" href="{% static 'icons/bootstrap-icons.css' %}">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+  <script>
+    (function() {
+      const t = localStorage.getItem('erp_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-bg-pattern"></div>
+
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <i class="bi bi-shop"></i>
+    </div>
+
+    <!-- Title -->
+    <h1 class="login-title">{{ BUSINESS_NAME }}</h1>
+    <p class="login-subtitle">ورود به سیستم مدیریت ERP</p>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="erp-alert erp-alert-{{ message.tags }} mb-3">
+          <i class="bi bi-info-circle-fill"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Login Form -->
+    <form method="post" action="{% url 'accounts:login' %}" novalidate>
+      {% csrf_token %}
+
+      <!-- Username -->
+      <div class="mb-4">
+        <label class="login-label" for="{{ form.username.id_for_label }}">
+          <i class="bi bi-person me-1"></i>{{ form.username.label }}
+        </label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="text-danger mt-1" style="font-size:12px;">
+            {{ form.username.errors.0 }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Password -->
+      <div class="mb-4">
+        <label class="login-label" for="{{ form.password.id_for_label }}">
+          <i class="bi bi-lock me-1"></i>{{ form.password.label }}
+        </label>
+        <div style="position:relative;">
+          {{ form.password }}
+          <button type="button"
+                  onclick="togglePasswordVisibility()"
+                  style="position:absolute;
+                         right:12px;
+                         top:50%;
+                         transform:translateY(-50%);
+                         background:none;
+                         border:none;
+                         cursor:pointer;
+                         color:var(--text-muted);
+                         font-size:16px;
+                         z-index:10;
+                         padding:0 4px;
+                         line-height:1;"
+                  tabindex="-1">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+        {% if form.password.errors %}
+          <div class="text-danger mt-1" style="font-size:12px;">
+            {{ form.password.errors.0 }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Remember me -->
+      <div class="mb-4 d-flex align-items-center gap-2">
+        {{ form.remember_me }}
+        <label class="form-check-label" for="{{ form.remember_me.id_for_label }}"
+               style="font-size:13px; cursor:pointer; color:var(--text-secondary);">
+          {{ form.remember_me.label }}
+        </label>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-erp btn-erp-primary w-100"
+              style="padding:12px; font-size:15px; border-radius:10px;">
+        <i class="bi bi-box-arrow-in-right"></i>
+        ورود به سیستم
+      </button>
+    </form>
+
+    <!-- Theme Toggle -->
+    <div class="text-center mt-4">
+      <button class="theme-toggle-btn mx-auto" id="themeToggleBtn" style="font-size:12px;">
+        <i class="bi bi-moon-fill"></i>
+        <span class="theme-label">حالت شب</span>
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-4" style="font-size:11px; color:var(--text-muted);">
+      {{ BUSINESS_ADDRESS }}<br>
+      <span style="direction:ltr; display:inline-block; margin-top:4px;">
+        {{ BUSINESS_PHONE_1 }} | {{ BUSINESS_PHONE_2 }}
+      </span>
+    </div>
+
+  </div>
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+<script>
+  function togglePasswordVisibility() {
+    const input = document.querySelector('input[name="password"]');
+    const icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  }
+</script>
+</body>
+</html>

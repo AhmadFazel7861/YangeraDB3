@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}ارزیابی موجودی{% endblock %}
+{% block page_title %}ارزیابی موجودی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-graph-up"></i></span>
+    ارزیابی موجودی انبار
+  </h1>
+  <form method="get" class="d-flex gap-2 align-items-center">
+    <select name="warehouse" class="erp-form-control" style="width:180px;" onchange="this.form.submit()">
+      <option value="">همه انبارها</option>
+      {% for wh in warehouses %}
+        <option value="{{ wh.pk }}" {% if warehouse_filter == wh.pk|stringformat:'s' %}selected{% endif %}>
+          {{ wh.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Total Summary -->
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش کل موجودی (افغانی)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ total.total_value|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-cash-stack"></i></div>
+    </div>
+  </div>
+  {% if total.total_value_usd %}
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش کل موجودی (دالر)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ total.total_value_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-currency-dollar"></i></div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع بچ‌های فعال</div>
+        <div class="stat-value">{{ total.total_batches_all|default:total.total_batches }}</div>
+        <div class="stat-sub">بچ</div>
+      </div>
+      <div class="stat-card-icon accent-blue"><i class="bi bi-stack"></i></div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">در حال انقضا</div>
+        <div class="stat-value" style="color:var(--accent-orange);">{{ expiring|length }}</div>
+        <div class="stat-sub">بچ (۳۰ روز)</div>
+      </div>
+      <div class="stat-card-icon" style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-clock-history"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">منقضی شده</div>
+        <div class="stat-value" style="color:var(--accent-red);">{{ expired|length }}</div>
+        <div class="stat-sub">بچ</div>
+      </div>
+      <div class="stat-card-icon accent-red"><i class="bi bi-x-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Per-product valuation -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+        <i class="bi bi-table"></i>
+      </span>
+      ارزش موجودی به تفکیک محصول
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>محصول</th>
+            <th>دسته‌بندی</th>
+            <th style="text-align:center;">تعداد بچ</th>
+            <th style="text-align:center;">مجموع موجودی</th>
+            <th style="text-align:left;">میانگین قیمت خرید (افغانی)</th>
+            <th style="text-align:left;">ارزش کل (افغانی)</th>
+            <th style="text-align:left;">ارزش کل (دالر)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in product_valuations %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:12px;">{{ forloop.counter }}</td>
+            <td>
+              <strong>{{ row.product__name }}</strong>
+              <div style="font-size:11px;color:var(--text-muted);font-family:monospace;">
+                {{ row.product__code }}
+              </div>
+            </td>
+            <td>
+              {% if row.product__category__name %}
+                <span class="erp-badge erp-badge-info">{{ row.product__category__name }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="erp-badge erp-badge-gray">{{ row.batch_count }}</span>
+            </td>
+            <td style="text-align:center;font-weight:700;">
+              {{ row.total_quantity|floatformat:"-3"|intcomma }}
+              <span style="font-size:11px;color:var(--text-muted);">{{ row.product__unit__abbreviation }}</span>
+            </td>
+            <td style="text-align:left;direction:ltr;">
+              {{ row.avg_cost|floatformat:2|intcomma }} ؋
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:800;color:var(--accent-green);">
+              {{ row.total_value|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:800;color:var(--accent-blue);">
+              {% if row.total_value_usd %}
+                {{ row.total_value_usd|floatformat:2|intcomma }} $
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h5>موجودی ثبت نشده</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if product_valuations %}
+        <tfoot>
+          <tr style="background:var(--table-header);font-weight:800;">
+            <td colspan="6" style="padding:14px 16px;text-align:left;">مجموع کل</td>
+            <td style="padding:14px 16px;text-align:left;direction:ltr;color:var(--accent-green);font-size:16px;">
+              {{ total.total_value|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="padding:14px 16px;text-align:left;direction:ltr;color:var(--accent-blue);font-size:16px;">
+              {% if total.total_value_usd %}
+                {{ total.total_value_usd|floatformat:2|intcomma }} $
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Expiring Batches Warning -->
+{% if expiring %}
+<div class="erp-card mb-4">
+  <div class="erp-card-header" style="background:rgba(245,158,11,.06);">
+    <h5 class="erp-card-title" style="color:var(--accent-orange);">
+      <span class="card-icon" style="background:rgba(245,158,11,.15);color:var(--accent-orange);">
+        <i class="bi bi-exclamation-triangle"></i>
+      </span>
+      بچ‌های در حال انقضا (۳۰ روز آینده)
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>بچ</th><th>محصول</th><th>انبار</th>
+            <th style="text-align:center;">موجودی</th>
+            <th>تاریخ انقضا</th><th>روز مانده</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in expiring %}
+          <tr>
+            <td style="font-family:monospace;font-size:12px;">{{ b.batch_number }}</td>
+            <td><strong>{{ b.product.name }}</strong></td>
+            <td><span class="erp-badge erp-badge-gray">{{ b.warehouse.name }}</span></td>
+            <td style="text-align:center;font-weight:700;">
+              {{ b.remaining_quantity|floatformat:"-3" }} {{ b.product.unit.abbreviation }}
+            </td>
+            <td style="font-size:13px;">{{ b.expiry_date }}</td>
+            <td>
+              <span class="erp-badge erp-badge-warning">{{ b.days_until_expiry }} روز</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Expired Batches -->
+{% if expired %}
+<div class="erp-card">
+  <div class="erp-card-header" style="background:rgba(239,68,68,.06);">
+    <h5 class="erp-card-title" style="color:var(--accent-red);">
+      <span class="card-icon" style="background:rgba(239,68,68,.15);color:var(--accent-red);">
+        <i class="bi bi-x-circle"></i>
+      </span>
+      بچ‌های منقضی شده (هنوز در انبار)
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>بچ</th><th>محصول</th><th>انبار</th>
+            <th style="text-align:center;">موجودی</th>
+            <th>تاریخ انقضا</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in expired %}
+          <tr style="background:rgba(239,68,68,.03);">
+            <td style="font-family:monospace;font-size:12px;">{{ b.batch_number }}</td>
+            <td><strong>{{ b.product.name }}</strong></td>
+            <td><span class="erp-badge erp-badge-gray">{{ b.warehouse.name }}</span></td>
+            <td style="text-align:center;font-weight:700;color:var(--accent-red);">
+              {{ b.remaining_quantity|floatformat:"-3" }} {{ b.product.unit.abbreviation }}
+            </td>
+            <td>
+              <span class="erp-badge erp-badge-danger">{{ b.expiry_date }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

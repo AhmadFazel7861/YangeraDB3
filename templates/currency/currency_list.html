@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}ارزها و نرخ‌ها{% endblock %}
+{% block page_title %}ارزها و نرخ‌ها{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-currency-exchange"></i></span>
+    ارزها و نرخ‌های امروز
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'currency:rate_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-clock-history"></i> تاریخچه
+    </a>
+    <a href="{% url 'currency:rate_create' %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-plus-circle"></i> ثبت نرخ جدید
+    </a>
+  </div>
+</div>
+
+<!-- Currency Cards -->
+<div class="row g-4 mb-4">
+  {% for item in currency_data %}
+  {% if not item.currency.is_base %}
+  <div class="col-lg-3 col-md-6">
+    <div class="erp-card" style="text-align:center;">
+      <div class="erp-card-body" style="padding:28px 20px;">
+        <!-- Currency Symbol -->
+        <div style="font-size:36px;font-weight:900;
+                    color:var(--accent-blue);
+                    direction:ltr;margin-bottom:8px;">
+          {{ item.currency.symbol }}
+        </div>
+        <div style="font-size:16px;font-weight:700;
+                    margin-bottom:4px;">
+          {{ item.currency.code }}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);
+                    margin-bottom:20px;">
+          {{ item.currency.name }}
+        </div>
+
+        {% if item.latest_rate %}
+          <!-- Rate Display -->
+          <div style="background:var(--bg-tertiary);border-radius:12px;
+                      padding:16px;margin-bottom:12px;">
+            <div style="font-size:11px;color:var(--text-muted);
+                        margin-bottom:6px;">نرخ امروز</div>
+            <div style="font-size:24px;font-weight:900;
+                        color:var(--text-primary);direction:ltr;">
+              {{ item.latest_rate.rate_to_afn|floatformat:2 }}
+              <span style="font-size:14px;color:var(--text-muted);">
+                ؋
+              </span>
+            </div>
+          </div>
+
+          {% if item.latest_rate.buy_rate != item.latest_rate.sell_rate %}
+          <div class="row g-2">
+            <div class="col-6">
+              <div style="background:rgba(16,185,129,.08);
+                          border-radius:8px;padding:8px;font-size:12px;">
+                <div style="color:var(--text-muted);margin-bottom:2px;">خرید</div>
+                <strong style="color:var(--accent-green);direction:ltr;">
+                  {{ item.latest_rate.buy_rate|floatformat:2 }}
+                </strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background:rgba(239,68,68,.08);
+                          border-radius:8px;padding:8px;font-size:12px;">
+                <div style="color:var(--text-muted);margin-bottom:2px;">فروش</div>
+                <strong style="color:var(--accent-red);direction:ltr;">
+                  {{ item.latest_rate.sell_rate|floatformat:2 }}
+                </strong>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">
+            {{ item.latest_rate.rate_date }}
+          </div>
+
+        {% else %}
+          <div style="font-size:13px;color:var(--text-muted);">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            نرخ ثبت نشده
+          </div>
+          <a href="{% url 'currency:rate_create' %}"
+             class="btn-erp btn-erp-primary mt-3"
+             style="font-size:12px;padding:6px 14px;">
+            ثبت نرخ
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="erp-card-body" style="padding:12px 16px;
+           border-top:1px solid var(--border-color);">
+        <a href="{% url 'currency:rate_list' %}?currency={{ item.currency.pk }}"
+           class="btn-erp btn-erp-outline w-100" style="font-size:12px;">
+          <i class="bi bi-clock-history"></i> تاریخچه
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% empty %}
+  <div class="col-12">
+    <div class="erp-card">
+      <div class="erp-card-body">
+        <div class="empty-state">
+          <i class="bi bi-currency-exchange"></i>
+          <h5>هیچ ارزی تعریف نشده</h5>
+          <a href="{% url 'currency:setup_currencies' %}"
+             class="btn-erp btn-erp-primary mt-2">
+            <i class="bi bi-magic"></i>
+            ایجاد ارزهای پیش‌فرض
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Quick Converter -->
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-calculator"></i>
+          </span>
+          تبدیل سریع ارز
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="erp-label">مبلغ</label>
+            <input type="number" id="convertAmount"
+                   class="erp-form-control" style="direction:ltr;"
+                   placeholder="0" step="0.01">
+          </div>
+          <div class="col-md-3">
+            <label class="erp-label">از</label>
+            <select id="convertFrom" class="erp-form-control">
+              <option value="AFN">AFN افغانی</option>
+              {% for item in currency_data %}
+              {% if not item.currency.is_base %}
+                <option value="{{ item.currency.code }}">
+                  {{ item.currency.code }} {{ item.currency.name }}
+                </option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="erp-label">به</label>
+            <select id="convertTo" class="erp-form-control">
+              {% for item in currency_data %}
+              {% if not item.currency.is_base %}
+                <option value="{{ item.currency.code }}">
+                  {{ item.currency.code }} {{ item.currency.name }}
+                </option>
+              {% endif %}
+              {% endfor %}
+              <option value="AFN">AFN افغانی</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button onclick="doConvert()"
+                    class="btn-erp btn-erp-primary w-100"
+                    style="padding:10px;">
+              <i class="bi bi-arrow-left-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="convertResult"
+             style="display:none;margin-top:16px;padding:16px;
+                    background:var(--bg-tertiary);border-radius:10px;
+                    text-align:center;">
+          <div style="font-size:12px;color:var(--text-muted);">نتیجه</div>
+          <div id="convertResultValue"
+               style="font-size:24px;font-weight:800;
+                      color:var(--accent-blue);direction:ltr;margin-top:4px;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function doConvert() {
+  const amount = document.getElementById('convertAmount').value;
+  const from   = document.getElementById('convertFrom').value;
+  const to     = document.getElementById('convertTo').value;
+
+  if (!amount || parseFloat(amount) <= 0) {
+    alert('مبلغ را وارد کنید');
+    return;
+  }
+
+  fetch(`/currency/api/convert/?amount=${amount}&from=${from}&to=${to}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const result = document.getElementById('convertResult');
+        const val    = document.getElementById('convertResultValue');
+        val.textContent =
+          parseFloat(data.result).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          }) + ' ' + to;
+        result.style.display = 'block';
+      } else {
+        alert('خطا در تبدیل: ' + data.error);
+      }
+    })
+    .catch(() => alert('خطا در اتصال'));
+}
+
+document.getElementById('convertAmount').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doConvert();
+});
+</script>
+{% endblock %}

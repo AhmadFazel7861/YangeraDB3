@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}تعدیل موجودی{% endblock %}
+{% block page_title %}تعدیل موجودی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-arrow-left-right"></i></span>
+    تعدیل موجودی — {{ product.name }}
+  </h1>
+  <a href="{% url 'inventory:product_detail' product.pk %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(245,158,11,.1);color:var(--accent-orange);">
+            <i class="bi bi-arrow-left-right"></i>
+          </span>
+          تعدیل موجودی
+        </h5>
+        <span style="font-size:13px;color:var(--text-muted);">
+          موجودی فعلی:
+          <strong style="color:var(--text-primary);">{{ product.current_stock|floatformat:"-3" }}</strong>
+          {{ product.unit.abbreviation }}
+        </span>
+      </div>
+      <div class="erp-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-4">
+            <label class="erp-label">نوع حرکت</label>
+            <select name="movement_type" class="erp-form-control">
+              {% for value, label in movement_types %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="erp-label">مقدار</label>
+            <input type="number" name="quantity" step="0.001"
+                   class="erp-form-control" style="direction:ltr;" required
+                   placeholder="مثبت = افزایش  |  منفی = کاهش">
+            <small style="font-size:11px;color:var(--text-muted);">
+              مقدار مثبت موجودی را افزایش، منفی کاهش می‌دهد
+            </small>
+          </div>
+          <div class="mb-4">
+            <label class="erp-label">قیمت فی واحد (اختیاری)</label>
+            <input type="number" name="unit_cost" step="0.01" min="0"
+                   class="erp-form-control" style="direction:ltr;"
+                   placeholder="افغانی">
+          </div>
+          <div class="mb-4">
+            <label class="erp-label">یادداشت</label>
+            <textarea name="notes" class="erp-form-control" rows="2"
+                      placeholder="دلیل تعدیل..."></textarea>
+          </div>
+          <div class="d-flex gap-3">
+            <button type="submit" class="btn-erp btn-erp-primary">
+              <i class="bi bi-check-circle"></i> ثبت تعدیل
+            </button>
+            <a href="{% url 'inventory:product_detail' product.pk %}" class="btn-erp btn-erp-outline">
+              انصراف
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}ویرایش بچ {{ batch.batch_number }}{% endblock %}
+{% block page_title %}ویرایش بچ موجودی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-pencil-square"></i></span>
+    ویرایش بچ {{ batch.batch_number }}
+  </h1>
+  <a href="{% url 'warehouse:warehouse_detail' warehouse.pk %}"
+     class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت به انبار
+  </a>
+</div>
+
+<!-- Read-only info card -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-info-circle"></i>
+      </span>
+      اطلاعات بچ (غیرقابل تغییر)
+    </h5>
+  </div>
+  <div class="erp-card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="erp-label">شماره بچ</div>
+        <div style="font-family:monospace;font-size:14px;font-weight:600;">
+          {{ batch.batch_number }}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="erp-label">محصول</div>
+        <div style="font-weight:600;">{{ batch.product.name }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="erp-label">انبار</div>
+        <div>{{ warehouse.name }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="erp-label">مقدار اولیه</div>
+        <div style="font-weight:600;">
+          {{ batch.initial_quantity|floatformat:"-3" }}
+          {{ batch.product.unit.abbreviation }}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="erp-label">مقدار مصرف شده</div>
+        <div style="color:var(--accent-orange);font-weight:600;">
+          {{ batch.consumed_quantity|floatformat:"-3" }}
+          {{ batch.product.unit.abbreviation }}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="erp-label">تاریخ ورود</div>
+        <div style="font-size:13px;color:var(--text-muted);direction:ltr;text-align:right;">
+          {{ batch.created_at|jalali_datetime }}
+        </div>
+      </div>
+      {% if batch.purchase_reference %}
+      <div class="col-md-3">
+        <div class="erp-label">مرجع خرید</div>
+        <div style="font-size:13px;">{{ batch.purchase_reference }}</div>
+      </div>
+      {% endif %}
+      {% if batch.supplier_name %}
+      <div class="col-md-3">
+        <div class="erp-label">تامین‌کننده</div>
+        <div style="font-size:13px;">{{ batch.supplier_name }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Edit form -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon" style="background:rgba(245,158,11,.1);color:var(--accent-orange);">
+        <i class="bi bi-pencil"></i>
+      </span>
+      فیلدهای قابل ویرایش
+    </h5>
+  </div>
+  <div class="erp-card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-4">
+
+        <!-- Remaining quantity -->
+        <div class="col-md-4">
+          <label class="erp-label">
+            مقدار باقی‌مانده
+            <span style="color:var(--danger);"> *</span>
+          </label>
+          <div style="position:relative;">
+            <input type="number" name="remaining_quantity"
+                   value="{{ batch.remaining_quantity|floatformat:'-3' }}"
+                   step="0.001" min="0"
+                   max="{{ batch.initial_quantity }}"
+                   class="erp-form-control" required>
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
+                         color:var(--text-muted);font-size:12px;">
+              {{ batch.product.unit.abbreviation }}
+            </span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+            حداکثر: {{ batch.initial_quantity|floatformat:"-3" }} {{ batch.product.unit.abbreviation }}
+          </div>
+        </div>
+
+        <!-- AFN unit cost -->
+        <div class="col-md-4">
+          <label class="erp-label">قیمت خرید فی واحد (افغانی)</label>
+          <div style="position:relative;">
+            <input type="number" name="unit_cost"
+                   value="{{ batch.unit_cost|floatformat:4 }}"
+                   step="0.0001" min="0"
+                   class="erp-form-control">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
+                         color:var(--text-muted);font-size:12px;">؋</span>
+          </div>
+        </div>
+
+        <!-- USD unit cost -->
+        <div class="col-md-4">
+          <label class="erp-label">قیمت خرید فی واحد (دالر)</label>
+          <div style="position:relative;">
+            <input type="number" name="unit_cost_usd"
+                   value="{{ batch.unit_cost_usd|floatformat:6 }}"
+                   step="0.000001" min="0"
+                   class="erp-form-control">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
+                         color:var(--text-muted);font-size:12px;">$</span>
+          </div>
+        </div>
+
+        <!-- Expiry date (Jalali dropdown, optional) -->
+        <div class="col-md-4">
+          <label class="erp-label">تاریخ انقضا (شمسی)</label>
+          <div class="d-flex gap-1" dir="ltr">
+            <select id="expDay" class="erp-form-control" style="padding:8px 4px;"></select>
+            <select id="expMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+            <select id="expYear" class="erp-form-control" style="padding:8px 4px;"></select>
+          </div>
+          <input type="hidden" name="expiry_date" id="expiryDateHidden"
+                 value="{{ batch.expiry_date|jalali }}">
+        </div>
+
+        <!-- Notes -->
+        <div class="col-md-8">
+          <label class="erp-label">یادداشت</label>
+          <input type="text" name="notes"
+                 value="{{ batch.notes }}"
+                 class="erp-form-control"
+                 placeholder="یادداشت اختیاری...">
+        </div>
+
+      </div>
+
+      <!-- Warning box if batch has movements -->
+      {% if batch.consumed_quantity > 0 %}
+      <div style="margin-top:20px;padding:12px 16px;border-radius:8px;
+                  background:rgba(245,158,11,.08);
+                  border:1px solid rgba(245,158,11,.3);
+                  color:var(--accent-orange);font-size:13px;">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        این بچ دارای <strong>{{ batch.consumed_quantity|floatformat:"-3" }}</strong>
+        واحد مصرف شده (فروش) است.
+        تغییر مقدار باقی‌مانده یک حرکت تعدیل ثبت می‌شود.
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-3 mt-4">
+        <button type="submit" class="btn-erp btn-erp-primary">
+          <i class="bi bi-check-lg"></i> ذخیره تغییرات
+        </button>
+        <a href="{% url 'warehouse:warehouse_detail' warehouse.pk %}"
+           class="btn-erp btn-erp-outline">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Optional Jalali dropdown picker (day/month/year, blank = no date) ──
+const JALALI_MONTHS_BATCH = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function setupOptionalJalaliPickerBatch(hiddenId, dayId, monthId, yearId) {
+  const hidden   = document.getElementById(hiddenId);
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parts.length === 3 ? parseInt(parts[0]) : '';
+  const initMonth = parts.length === 3 ? parseInt(parts[1]) : '';
+  const initDay   = parts.length === 3 ? parseInt(parts[2]) : '';
+
+  // Center the range on the ACTUAL current Jalali year (passed from the
+  // server, always accurate — not hardcoded), with a wide window so old
+  // batches and far-future expiry dates are both reachable. If the value
+  // already saved falls outside this window, the window stretches to
+  // include it, so nothing already saved ever becomes unselectable.
+  const currentYear = {{ current_jalali_year }};
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear) {
+    rangeStart = Math.min(rangeStart, initYear);
+    rangeEnd   = Math.max(rangeEnd, initYear);
+  }
+
+  yearSel.innerHTML = '<option value="">سال</option>';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '<option value="">ماه</option>';
+  JALALI_MONTHS_BATCH.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    daySel.innerHTML = '<option value="">روز</option>';
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', updateHidden);
+  monthSel.addEventListener('change', updateHidden);
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupOptionalJalaliPickerBatch('expiryDateHidden', 'expDay', 'expMonth', 'expYear');
+</script>
+{% endblock %}

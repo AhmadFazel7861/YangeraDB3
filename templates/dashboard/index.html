@@ -1,0 +1,487 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+{% block title %}داشبورد{% endblock %}
+{% block page_title %}داشبورد{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-speedometer2"></i></span>
+    داشبورد
+  </h1>
+  <div style="font-size:12px;color:var(--text-muted);">
+    <i class="bi bi-calendar3 me-1"></i>
+    {% now "l، j F Y" %}
+  </div>
+</div>
+
+<!-- TOP STATS ROW -->
+<div class="stats-grid mb-4">
+
+  <div class="stat-card accent-blue">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">فروش امروز</div>
+        <div class="stat-value">{{ today_sales|floatformat:0|intcomma }}</div>
+        <div class="stat-sub">
+          {{ today_sales_count }} فاکتور | افغانی
+        </div>
+      </div>
+      <div class="stat-card-icon accent-blue">
+        <i class="bi bi-cart3"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card accent-green">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">فروش این ماه</div>
+        <div class="stat-value">{{ month_sales|floatformat:0|intcomma }}</div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card {% if month_profit >= 0 %}accent-green{% else %}accent-red{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">سود این ماه</div>
+        <div class="stat-value"
+             style="color:{% if month_profit >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ month_profit|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی خالص</div>
+      </div>
+      <div class="stat-card-icon {% if month_profit >= 0 %}accent-green{% else %}accent-red{% endif %}">
+        <i class="bi bi-{% if month_profit >= 0 %}trending-up{% else %}trending-down{% endif %}"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی مشتریان</div>
+        <div class="stat-value">{{ customer_debt|floatformat:0|intcomma }}</div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-people"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی به تامین‌کنندگان</div>
+        <div class="stat-value" style="color:var(--accent-orange);">
+          {{ supplier_debt|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-truck"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مصارف این ماه</div>
+        <div class="stat-value">{{ month_expenses|floatformat:0|intcomma }}</div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(139,92,246,.12);color:var(--accent-purple);">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- USD STATS ROW — only shown if there's any USD activity -->
+{% if today_sales_usd or month_sales_usd or customer_debt_usd or supplier_debt_usd %}
+<div class="stats-grid mb-4">
+
+  <div class="stat-card accent-blue">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">فروش امروز ($)</div>
+        <div class="stat-value">{{ today_sales_usd|floatformat:2|intcomma }}</div>
+        <div class="stat-sub">
+          {{ today_sales_count_usd }} فاکتور | دالر
+        </div>
+      </div>
+      <div class="stat-card-icon accent-blue">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card accent-green">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">فروش این ماه ($)</div>
+        <div class="stat-value">{{ month_sales_usd|floatformat:2|intcomma }}</div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card {% if month_profit_usd >= 0 %}accent-green{% else %}accent-red{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">سود این ماه ($)</div>
+        <div class="stat-value"
+             style="color:{% if month_profit_usd >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ month_profit_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر ناخالص</div>
+      </div>
+      <div class="stat-card-icon {% if month_profit_usd >= 0 %}accent-green{% else %}accent-red{% endif %}">
+        <i class="bi bi-{% if month_profit_usd >= 0 %}trending-up{% else %}trending-down{% endif %}"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی مشتریان ($)</div>
+        <div class="stat-value">{{ customer_debt_usd|floatformat:2|intcomma }}</div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-people"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بدهی به تامین‌کنندگان ($)</div>
+        <div class="stat-value" style="color:var(--accent-orange);">
+          {{ supplier_debt_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-truck"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NEW: USD Expenses card — mirrors AFN expenses card ── -->
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مصارف این ماه ($)</div>
+        <div class="stat-value">{{ month_expenses_usd|floatformat:2|intcomma }}</div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(139,92,246,.12);color:var(--accent-purple);">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- SECOND ROW: Counts + Alerts -->
+<div class="row g-4 mb-4">
+
+  <div class="col-lg-8">
+
+    <!-- Recent Invoices -->
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-receipt"></i>
+          </span>
+          آخرین فاکتورهای فروش
+        </h5>
+        <a href="{% url 'sales:invoice_list' %}"
+           class="btn-erp btn-erp-outline"
+           style="font-size:12px;padding:5px 12px;">
+          مشاهده همه
+        </a>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>فاکتور</th>
+              <th>مشتری</th>
+              <th>تاریخ</th>
+              <th style="text-align:left;">مبلغ</th>
+              <th style="text-align:left;">مانده</th>
+              <th style="text-align:center;">وضعیت</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in recent_invoices %}
+            <tr>
+              <td>
+                <a href="{% url 'sales:invoice_detail' inv.pk %}"
+                   style="font-family:monospace;font-weight:700;
+                          color:var(--accent-blue);text-decoration:none;">
+                  {{ inv.invoice_number }}
+                </a>
+                {% if inv.currency == 'USD' %}
+                  <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+                {% endif %}
+              </td>
+              <td style="font-weight:600;">{{ inv.customer.name }}</td>
+              <td style="font-size:12px;">{{ inv.invoice_date }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:600;">
+                {% if inv.currency == 'USD' %}
+                  {{ inv.total_amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ inv.total_amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td style="text-align:left;direction:ltr;">
+                {% if inv.remaining_amount > 0 %}
+                  <span style="color:var(--accent-red);font-weight:700;">
+                    {% if inv.currency == 'USD' %}
+                      {{ inv.remaining_amount|floatformat:2|intcomma }} $
+                    {% else %}
+                      {{ inv.remaining_amount|floatformat:0|intcomma }} ؋
+                    {% endif %}
+                  </span>
+                {% else %}
+                  <span style="color:var(--accent-green);">تسویه</span>
+                {% endif %}
+              </td>
+              <td style="text-align:center;">
+                {% if inv.status == 'paid' %}
+                  <span class="erp-badge erp-badge-success">کامل</span>
+                {% elif inv.status == 'partial' %}
+                  <span class="erp-badge erp-badge-warning">جزئی</span>
+                {% elif inv.status == 'confirmed' %}
+                  <span class="erp-badge erp-badge-danger">نشده</span>
+                {% else %}
+                  <span class="erp-badge erp-badge-gray">لغو</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state" style="padding:30px;">
+                  <i class="bi bi-inbox"></i>
+                  <h5>هیچ فاکتوری ثبت نشده</h5>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-lg-4">
+
+    <!-- Quick Actions -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+            <i class="bi bi-lightning-charge"></i>
+          </span>
+          دسترسی سریع
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'sales:invoice_create' %}"
+             class="btn-erp btn-erp-primary"
+             style="justify-content:flex-start;padding:12px 16px;">
+            <i class="bi bi-plus-circle" style="font-size:16px;"></i>
+            فاکتور فروش جدید
+          </a>
+          <a href="{% url 'purchases:purchase_create' %}"
+             class="btn-erp btn-erp-outline"
+             style="justify-content:flex-start;padding:12px 16px;">
+            <i class="bi bi-truck" style="font-size:16px;"></i>
+            فاکتور خرید جدید
+          </a>
+          <a href="{% url 'customers:customer_create' %}"
+             class="btn-erp btn-erp-outline"
+             style="justify-content:flex-start;padding:12px 16px;">
+            <i class="bi bi-person-plus" style="font-size:16px;"></i>
+            مشتری جدید
+          </a>
+          <a href="{% url 'expenses:expense_create' %}"
+             class="btn-erp btn-erp-outline"
+             style="justify-content:flex-start;padding:12px 16px;">
+            <i class="bi bi-cash-stack" style="font-size:16px;"></i>
+            ثبت مصرف جدید
+          </a>
+          <a href="{% url 'reports:profit_loss' %}"
+             class="btn-erp btn-erp-outline"
+             style="justify-content:flex-start;padding:12px 16px;">
+            <i class="bi bi-graph-up-arrow" style="font-size:16px;"></i>
+            گزارش سود و زیان
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(245,158,11,.1);color:var(--accent-orange);">
+            <i class="bi bi-exclamation-triangle"></i>
+          </span>
+          هشدارها
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        {% if low_stock_count > 0 %}
+        <a href="{% url 'inventory:product_list' %}?stock=low"
+           style="text-decoration:none;">
+          <div class="d-flex align-items-center gap-3 p-2 rounded mb-2"
+               style="background:rgba(245,158,11,.08);
+                      border:1px solid rgba(245,158,11,.2);">
+            <i class="bi bi-exclamation-triangle-fill"
+               style="color:var(--accent-orange);font-size:18px;"></i>
+            <div>
+              <div style="font-weight:700;font-size:13px;">
+                {{ low_stock_count }} محصول موجودی کم
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);">
+                نیاز به سفارش دارد
+              </div>
+            </div>
+          </div>
+        </a>
+        {% endif %}
+
+        {% if out_of_stock > 0 %}
+        <a href="{% url 'inventory:product_list' %}?stock=out"
+           style="text-decoration:none;">
+          <div class="d-flex align-items-center gap-3 p-2 rounded mb-2"
+               style="background:rgba(239,68,68,.08);
+                      border:1px solid rgba(239,68,68,.2);">
+            <i class="bi bi-x-circle-fill"
+               style="color:var(--accent-red);font-size:18px;"></i>
+            <div>
+              <div style="font-weight:700;font-size:13px;">
+                {{ out_of_stock }} محصول ناموجود
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);">
+                موجودی صفر
+              </div>
+            </div>
+          </div>
+        </a>
+        {% endif %}
+
+        {% if customer_debt > 0 %}
+        <a href="{% url 'customers:customer_debts' %}"
+           style="text-decoration:none;">
+          <div class="d-flex align-items-center gap-3 p-2 rounded mb-2"
+               style="background:rgba(239,68,68,.06);
+                      border:1px solid rgba(239,68,68,.15);">
+            <i class="bi bi-people-fill"
+               style="color:var(--accent-red);font-size:18px;"></i>
+            <div>
+              <div style="font-weight:700;font-size:13px;">
+                بدهی مشتریان
+              </div>
+              <div style="font-size:11px;color:var(--accent-red);direction:ltr;">
+                {{ customer_debt|floatformat:0|intcomma }} ؋
+              </div>
+            </div>
+          </div>
+        </a>
+        {% endif %}
+
+        {% if not low_stock_count and not out_of_stock and not customer_debt %}
+        <div class="empty-state" style="padding:20px;">
+          <i class="bi bi-check-circle-fill"
+             style="color:var(--accent-green);opacity:1;"></i>
+          <h5 style="color:var(--accent-green);font-size:14px;">
+            همه چیز خوب است!
+          </h5>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Bottom Stats -->
+<div class="row g-3">
+  <div class="col-6 col-md-3">
+    <div class="erp-card text-center" style="padding:16px;">
+      <div style="font-size:28px;font-weight:800;color:var(--accent-blue);">
+        {{ product_count }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">محصول فعال</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="erp-card text-center" style="padding:16px;">
+      <div style="font-size:28px;font-weight:800;color:var(--accent-green);">
+        {{ customer_count }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">مشتری فعال</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="erp-card text-center" style="padding:16px;">
+      <div style="font-size:28px;font-weight:800;
+                  color:{% if low_stock_count > 0 %}var(--accent-orange){% else %}var(--accent-green){% endif %};">
+        {{ low_stock_count }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">محصول موجودی کم</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="erp-card text-center" style="padding:16px;">
+      <div style="font-size:28px;font-weight:800;
+                  color:{% if out_of_stock > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+        {{ out_of_stock }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">محصول ناموجود</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

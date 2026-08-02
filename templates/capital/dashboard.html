@@ -1,0 +1,1561 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load jalali_tags %}
+
+{% block title %}سرمایه دکان{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ═══════════════════════════════════════
+     BASE
+  ═══════════════════════════════════════ */
+  .cap-page { padding-bottom: 48px; }
+
+  /* ═══════════════════════════════════════
+     PAGE HEADER
+  ═══════════════════════════════════════ */
+  .cap-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    color: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cap-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 2, 2, 0.07);
+  }
+  .cap-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: 60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: rgba(248, 1, 1, 0.05);
+  }
+  .cap-hero-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .cap-hero-title i {
+    width: 48px; height: 48px;
+    background: rgba(255, 1, 1, 0.2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    backdrop-filter: blur(4px);
+  }
+  .cap-hero-meta {
+    font-size: 13px;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ═══════════════════════════════════════
+     NET WORTH BANNER
+  ═══════════════════════════════════════ */
+  .net-worth-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 16px;
+    padding: 24px 32px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  }
+  .nw-label-block {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .nw-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: #fff;
+    box-shadow: 0 4px 12px rgba(22,163,74,0.4);
+    flex-shrink: 0;
+  }
+  .nw-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+  }
+  .nw-subtitle {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+  }
+  .nw-amounts {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .nw-amount-block { text-align: left; }
+  .nw-currency-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  .nw-value-usd {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #22c55e;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .nw-value-afn {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #60a5fa;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .nw-breakdown {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+  .nw-pill {
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+  }
+  .nw-pill-label { color: rgba(255,255,255,0.35); }
+  .nw-pill-val-green  { color: #22c55e; font-weight: 700; margin-right: 6px; }
+  .nw-pill-val-orange { color: #fb923c; font-weight: 700; margin-right: 6px; }
+  .nw-pill-val-blue   { color: #38bdf8; font-weight: 700; margin-right: 6px; }
+
+  /* ═══════════════════════════════════════
+     FILTER BAR
+  ═══════════════════════════════════════ */
+  .cap-filter {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 18px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .cap-filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+  .cap-filter-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ═══════════════════════════════════════
+     TOP KPI GRID
+  ═══════════════════════════════════════ */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 14px 0 80px;
+    opacity: 0.08;
+  }
+  .kpi-card.green::before  { background: #16a34a; }
+  .kpi-card.blue::before   { background: #2563eb; }
+  .kpi-card.red::before    { background: #dc2626; }
+  .kpi-card.orange::before { background: #ea580c; }
+  .kpi-card.teal::before   { background: #0d9488; }
+  .kpi-card.purple::before { background: #9333ea; }
+
+  .kpi-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+  }
+  .kpi-card.green  .kpi-icon { background: rgba(22,163,74,0.12);  color: #16a34a; }
+  .kpi-card.blue   .kpi-icon { background: rgba(37,99,235,0.12);  color: #2563eb; }
+  .kpi-card.red    .kpi-icon { background: rgba(220,38,38,0.12);  color: #dc2626; }
+  .kpi-card.orange .kpi-icon { background: rgba(234,88,12,0.12);  color: #ea580c; }
+  .kpi-card.teal   .kpi-icon { background: rgba(13,148,136,0.12); color: #0d9488; }
+  .kpi-card.purple .kpi-icon { background: rgba(147,51,234,0.12); color: #9333ea; }
+
+  .kpi-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kpi-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .kpi-card.green  .kpi-value { color: #16a34a; }
+  .kpi-card.blue   .kpi-value { color: #2563eb; }
+  .kpi-card.red    .kpi-value { color: #dc2626; }
+  .kpi-card.orange .kpi-value { color: #ea580c; }
+  .kpi-card.teal   .kpi-value { color: #0d9488; }
+  .kpi-card.purple .kpi-value { color: #9333ea; }
+
+  /* ═══════════════════════════════════════
+     SECTION HEADERS
+  ═══════════════════════════════════════ */
+  .cap-section { margin-bottom: 32px; }
+  .cap-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cap-section-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cap-section-title .sec-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+  }
+  .sec-icon.green  { background: rgba(22,163,74,0.12);  color: #16a34a; }
+  .sec-icon.blue   { background: rgba(37,99,235,0.12);  color: #2563eb; }
+  .sec-icon.red    { background: rgba(220,38,38,0.12);  color: #dc2626; }
+  .sec-icon.orange { background: rgba(234,88,12,0.12);  color: #ea580c; }
+  .sec-icon.teal   { background: rgba(13,148,136,0.12); color: #0d9488; }
+  .sec-icon.purple { background: rgba(147,51,234,0.12); color: #9333ea; }
+  .cap-section-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--hover-bg);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* ═══════════════════════════════════════
+     TWO-COLUMN MINI CARDS
+  ═══════════════════════════════════════ */
+  .mini-card-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .mini-card-row.single-col {
+    grid-template-columns: 1fr;
+  }
+  .mini-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .mini-card-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .mini-card-body .label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .mini-card-body .val   { font-size: 1.05rem; font-weight: 700; }
+
+  /* ═══════════════════════════════════════
+     TABLE
+  ═══════════════════════════════════════ */
+  .cap-table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .cap-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.855rem;
+  }
+  .cap-table-wrap thead th {
+    background: var(--hover-bg);
+    padding: 11px 16px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+  .cap-table-wrap tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.12s;
+  }
+  .cap-table-wrap tbody tr:last-child { border-bottom: none; }
+  .cap-table-wrap tbody tr:hover { background: var(--hover-bg); }
+  .cap-table-wrap tbody td {
+    padding: 11px 16px;
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+  .cap-table-wrap tfoot td {
+    padding: 12px 16px;
+    font-weight: 700;
+    background: var(--hover-bg);
+    border-top: 2px solid var(--border-color);
+  }
+  .empty-row {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-row i { font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 8px; }
+
+  /* ═══════════════════════════════════════
+     BANKER CARDS
+  ═══════════════════════════════════════ */
+  .banker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .banker-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 18px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .banker-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  }
+  .banker-card-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .banker-card-name .avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), #6366f1);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .bal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 0.855rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .bal-row:last-of-type { border-bottom: none; }
+  .bal-label { color: var(--text-muted); font-size: 11px; }
+  .bal-pos { color: #16a34a; font-weight: 700; }
+  .bal-neg { color: #dc2626; font-weight: 700; }
+  .bal-zero { color: var(--text-muted); }
+
+  /* ═══════════════════════════════════════
+     TRANSFER FORM
+  ═══════════════════════════════════════ */
+  .transfer-form-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .transfer-form-header {
+    background: linear-gradient(135deg, #0d9488, #0891b2);
+    padding: 16px 24px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .transfer-form-body { padding: 24px; }
+
+  /* ═══════════════════════════════════════
+     BADGES
+  ═══════════════════════════════════════ */
+  .badge-method {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .m-cash   { background: rgba(22,163,74,0.12);  color: #16a34a; }
+  .m-credit { background: rgba(234,88,12,0.12);  color: #ea580c; }
+  .m-bank   { background: rgba(37,99,235,0.12);  color: #2563eb; }
+  .m-mobile { background: rgba(147,51,234,0.12); color: #9333ea; }
+  .m-saraf  { background: rgba(13,148,136,0.12); color: #0d9488; }
+  .cur-afn  { color: #16a34a; font-weight: 700; }
+  .cur-usd  { color: #2563eb; font-weight: 700; }
+
+  /* ═══════════════════════════════════════
+     DIVIDER
+  ═══════════════════════════════════════ */
+  .cap-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 32px 0;
+    position: relative;
+  }
+  .cap-divider::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    background: var(--card-bg);
+    padding: 0 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ═══════════════════════════════════════
+     SCROLL TO TOP
+  ═══════════════════════════════════════ */
+  .anchor-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .anchor-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .anchor-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cap-page">
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-4" role="alert">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- ── Hero Header ── -->
+<div class="cap-hero">
+  <div class="cap-hero-title">
+    <i class="bi bi-safe2"></i>
+    سرمایه دکان
+  </div>
+  <div class="cap-hero-meta">
+    <i class="bi bi-calendar3"></i>
+    {{ today|jalali }}
+  </div>
+</div>
+
+<!-- ── Net Worth Banner ── -->
+<div class="net-worth-banner">
+  <div class="nw-label-block">
+    <div class="nw-icon">
+      <i class="bi bi-graph-up-arrow"></i>
+    </div>
+    <div>
+      <div class="nw-title">خالص سرمایه کل دکان</div>
+      <div class="nw-subtitle">بدهی مشتریان + دخل دکان + موجودی گدام + مانده صرافان − بدهی تامین‌کنندگان</div>
+    </div>
+  </div>
+
+  <div class="nw-amounts">
+    {% if currency != 'AFN' %}
+    <div class="nw-amount-block">
+      <div class="nw-currency-label">دالر</div>
+      <div class="nw-value-usd">$ {{ net_worth_usd|floatformat:2 }}</div>
+    </div>
+    {% endif %}
+    {% if currency != 'USD' %}
+    <div class="nw-amount-block">
+      <div class="nw-currency-label">افغانی</div>
+      <div class="nw-value-afn">{{ net_worth_afn|floatformat:2 }} ؋</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Breakdown pills -->
+  <div class="nw-breakdown">
+    {% if currency != 'AFN' %}
+    <div class="nw-pill">
+      <span class="nw-pill-label">بدهی مشتریان</span>
+      <span class="nw-pill-val-green">$ {{ net_worth_data.customer_debt_usd|floatformat:2 }}</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">بدهی تامین‌کنندگان</span>
+      <span style="color:#f87171; font-weight:700; margin-right:6px;">− $ {{ net_worth_data.supplier_debt_usd|floatformat:2 }}</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">دخل دکان</span>
+      <span class="nw-pill-val-green">$ {{ income_all.net_usd|floatformat:2 }}</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">مانده صرافان</span>
+      <span class="nw-pill-val-blue">$ {{ banker_data.total_usd|floatformat:2 }}</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">موجودی گدام</span>
+      <span class="nw-pill-val-orange">$ {{ stock.total_usd|floatformat:2 }}</span>
+    </div>
+    {% endif %}
+    {% if currency != 'USD' %}
+    <div class="nw-pill">
+      <span class="nw-pill-label">بدهی مشتریان</span>
+      <span class="nw-pill-val-green">{{ net_worth_data.customer_debt_afn|floatformat:2 }} ؋</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">بدهی تامین‌کنندگان</span>
+      <span style="color:#f87171; font-weight:700; margin-right:6px;">− {{ net_worth_data.supplier_debt_afn|floatformat:2 }} ؋</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">دخل دکان</span>
+      <span class="nw-pill-val-green">{{ income_all.net_afn|floatformat:2 }} ؋</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">مانده صرافان</span>
+      <span class="nw-pill-val-blue">{{ banker_data.total_afn|floatformat:2 }} ؋</span>
+    </div>
+    <div class="nw-pill">
+      <span class="nw-pill-label">موجودی گدام</span>
+      <span class="nw-pill-val-orange">{{ stock.total_afn|floatformat:2 }} ؋</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Filter Bar ── -->
+<div class="cap-filter">
+  <form method="get" action="" class="d-flex flex-wrap align-items-end gap-3 w-100">
+    <div class="cap-filter-group">
+      <div class="cap-filter-label">نمایش زمانی</div>
+      <div class="btn-group btn-group-sm">
+        <a href="?filter=all&currency={{ currency }}"
+           class="btn {% if filter_mode == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-infinity me-1"></i>همه زمان‌ها
+        </a>
+        <a href="?filter=month&currency={{ currency }}"
+           class="btn {% if filter_mode == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-calendar-month me-1"></i>این ماه
+        </a>
+        <a href="?filter=range&currency={{ currency }}&date_from={{ date_from_str }}&date_to={{ date_to_str }}"
+           class="btn {% if filter_mode == 'range' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-calendar-range me-1"></i>بازه دلخواه
+        </a>
+      </div>
+    </div>
+
+    {% if filter_mode == 'range' %}
+    <div class="cap-filter-group">
+      <div class="cap-filter-label">از تاریخ (شمسی)</div>
+      <div class="d-flex gap-1" dir="ltr">
+        <select id="capFromDay" class="form-select form-select-sm" style="width:58px;"></select>
+        <select id="capFromMonth" class="form-select form-select-sm" style="width:75px;"></select>
+        <select id="capFromYear" class="form-select form-select-sm" style="width:70px;"></select>
+      </div>
+      <input type="hidden" name="date_from" id="capDateFromHidden" value="{{ date_from_str }}">
+    </div>
+    <div class="cap-filter-group">
+      <div class="cap-filter-label">تا تاریخ (شمسی)</div>
+      <div class="d-flex gap-1" dir="ltr">
+        <select id="capToDay" class="form-select form-select-sm" style="width:58px;"></select>
+        <select id="capToMonth" class="form-select form-select-sm" style="width:75px;"></select>
+        <select id="capToYear" class="form-select form-select-sm" style="width:70px;"></select>
+      </div>
+      <input type="hidden" name="date_to" id="capDateToHidden" value="{{ date_to_str }}">
+    </div>
+    <div class="cap-filter-group">
+      <div class="cap-filter-label">&nbsp;</div>
+      <button type="submit" name="filter" value="range" class="btn btn-sm btn-primary">
+        <i class="bi bi-search me-1"></i>جستجو
+      </button>
+    </div>
+    {% endif %}
+
+    <div class="cap-filter-group">
+      <div class="cap-filter-label">ارز</div>
+      <select name="currency" class="form-select form-select-sm" style="width:130px;"
+              onchange="this.form.submit()">
+        <option value=""    {% if not currency %}selected{% endif %}>همه ارزها</option>
+        <option value="AFN" {% if currency == 'AFN' %}selected{% endif %}>افغانی ؋</option>
+        <option value="USD" {% if currency == 'USD' %}selected{% endif %}>دالر $</option>
+      </select>
+    </div>
+  </form>
+</div>
+
+<!-- ── Quick Nav Anchors ── -->
+<div class="anchor-nav">
+  <a href="#sec-income"    class="anchor-btn"><i class="bi bi-cash-coin"></i> دخل دکان</a>
+  <a href="#sec-stock"     class="anchor-btn"><i class="bi bi-boxes"></i> موجودی گدام</a>
+  <a href="#sec-expenses"  class="anchor-btn"><i class="bi bi-receipt-cutoff"></i> مصارف</a>
+  <a href="#sec-banker"    class="anchor-btn"><i class="bi bi-bank2"></i> بیلانس صراف</a>
+  <a href="#sec-transfers" class="anchor-btn"><i class="bi bi-arrow-left-right"></i> انتقال به صراف</a>
+</div>
+
+<!-- ── TOP KPI OVERVIEW ── -->
+<div class="kpi-grid">
+
+  {# ---------- دخل دکان ---------- #}
+  {% if currency == 'USD' %}
+  <div class="kpi-card blue">
+    <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+    <div class="kpi-label">دخل دکان (دالر)</div>
+    <div class="kpi-value">$ {{ income_usd_total|floatformat:2 }}</div>
+  </div>
+  {% elif currency == 'AFN' %}
+  <div class="kpi-card green">
+    <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+    <div class="kpi-label">دخل دکان (افغانی)</div>
+    <div class="kpi-value">{{ income_afn_total|floatformat:2 }} ؋</div>
+  </div>
+  {% else %}
+  <div class="kpi-card green">
+    <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+    <div class="kpi-label">دخل دکان (افغانی)</div>
+    <div class="kpi-value">{{ income_afn_total|floatformat:2 }} ؋</div>
+    <div class="kpi-sub cur-usd">$ {{ income_usd_total|floatformat:2 }}</div>
+  </div>
+  <div class="kpi-card blue">
+    <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+    <div class="kpi-label">دخل دکان (دالر)</div>
+    <div class="kpi-value">$ {{ income_usd_total|floatformat:2 }}</div>
+    <div class="kpi-sub cur-afn">{{ income_afn_total|floatformat:2 }} ؋</div>
+  </div>
+  {% endif %}
+
+  {# ---------- موجودی گدام ---------- #}
+  <div class="kpi-card orange">
+    <div class="kpi-icon"><i class="bi bi-boxes"></i></div>
+    {% if currency == 'USD' %}
+    <div class="kpi-label">ارزش موجودی گدام (دالر)</div>
+    <div class="kpi-value">$ {{ stock.total_usd|floatformat:2 }}</div>
+    {% else %}
+    <div class="kpi-label">ارزش موجودی گدام</div>
+    <div class="kpi-value">{{ stock.total_afn|floatformat:2 }} ؋</div>
+    {% endif %}
+    <div class="kpi-sub">قیمت خرید FIFO</div>
+  </div>
+
+  {# ---------- مصارف ---------- #}
+  <div class="kpi-card red">
+    <div class="kpi-icon"><i class="bi bi-receipt-cutoff"></i></div>
+    {% if currency == 'USD' %}
+    <div class="kpi-label">مصارف کل (دالر)</div>
+    <div class="kpi-value">$ {{ expenses.all_usd|floatformat:2 }}</div>
+    {% else %}
+    <div class="kpi-label">مصارف کل (افغانی)</div>
+    <div class="kpi-value">{{ expenses.all_afn|floatformat:2 }} ؋</div>
+    {% endif %}
+  </div>
+
+  {# ---------- مانده صرافان ---------- #}
+  <div class="kpi-card teal">
+    <div class="kpi-icon"><i class="bi bi-bank2"></i></div>
+    {% if currency == 'USD' %}
+    <div class="kpi-label">مانده صرافان (دالر)</div>
+    <div class="kpi-value">$ {{ banker_data.total_usd|floatformat:2 }}</div>
+    {% else %}
+    <div class="kpi-label">مانده صرافان (افغانی)</div>
+    <div class="kpi-value">{{ banker_data.total_afn|floatformat:2 }} ؋</div>
+    {% endif %}
+    <div class="kpi-sub">{{ banker_data.bankers|length }} صراف فعال</div>
+  </div>
+
+  {# ---------- انتقالات به صراف ---------- #}
+  <div class="kpi-card purple">
+    <div class="kpi-icon"><i class="bi bi-arrow-left-right"></i></div>
+    {% if currency == 'USD' %}
+    <div class="kpi-label">انتقالات به صراف (دالر)</div>
+    <div class="kpi-value">$ {{ transfer_total_usd|floatformat:2 }}</div>
+    {% else %}
+    <div class="kpi-label">انتقالات به صراف (افغانی)</div>
+    <div class="kpi-value">{{ transfer_total_afn|floatformat:2 }} ؋</div>
+    {% endif %}
+    <div class="kpi-sub">در بازه انتخابی</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 1 — دخل دکان
+════════════════════════════════════════ -->
+<div class="cap-divider" data-label="دخل دکان"></div>
+<div class="cap-section" id="sec-income">
+  <div class="cap-section-header">
+    <div class="cap-section-title">
+      <span class="sec-icon green"><i class="bi bi-cash-coin"></i></span>
+      دخل دکان — پرداخت‌های مشتریان
+    </div>
+    <span class="cap-section-badge">{{ income.payments|length }} رکورد</span>
+  </div>
+
+  <div class="mini-card-row {% if currency %}single-col{% endif %}">
+    {% if currency != 'USD' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(22,163,74,0.12); color:#16a34a;">
+        <i class="bi bi-cash-coin"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">مجموع دریافتی (افغانی)</div>
+        <div class="val cur-afn">{{ income.total_afn|floatformat:2 }} ؋</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if currency != 'AFN' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(37,99,235,0.12); color:#2563eb;">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">مجموع دریافتی (دالر)</div>
+        <div class="val cur-usd">$ {{ income.total_usd|floatformat:2 }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="cap-table-wrap">
+    {% if income.payments %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>تاریخ</th>
+          <th>مشتری</th>
+          <th>فاکتور</th>
+          <th>مبلغ</th>
+          <th>روش پرداخت</th>
+          <th>یادداشت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in income.payments %}
+        {% if not currency or p.currency == currency %}
+        <tr>
+          <td style="color:var(--text-muted); font-size:11px;">{{ forloop.counter }}</td>
+          <td style="font-size:12px;">{{ p.payment_date|jalali }}</td>
+          <td style="font-weight:600;">{{ p.invoice.customer.name }}</td>
+          <td>
+            {% if p.invoice %}
+            <a href="{% url 'sales:invoice_detail' p.invoice.pk %}"
+               style="color:var(--primary); font-size:12px; font-weight:600;">
+              {{ p.invoice.invoice_number }}
+            </a>
+            {% else %}
+            <span style="color:var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+          <td style="font-weight:700;">
+            {% if p.currency == 'USD' %}
+              <span class="cur-usd">$ {{ p.amount|floatformat:2 }}</span>
+            {% else %}
+              <span class="cur-afn">{{ p.amount|floatformat:2 }} ؋</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.payment_method %}
+            <span class="badge-method m-{{ p.payment_method }}">
+              {{ p.get_payment_method_display }}
+            </span>
+            {% else %}
+            <span style="color:var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ p.notes|default:"—" }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">جمع کل</td>
+          <td>
+            {% if currency == 'USD' %}
+              <span class="cur-usd">$ {{ income.total_usd|floatformat:2 }}</span>
+            {% elif currency == 'AFN' %}
+              <span class="cur-afn">{{ income.total_afn|floatformat:2 }} ؋</span>
+            {% else %}
+              <span class="cur-afn">{{ income.total_afn|floatformat:2 }} ؋</span>
+              &nbsp;/&nbsp;
+              <span class="cur-usd">$ {{ income.total_usd|floatformat:2 }}</span>
+            {% endif %}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="empty-row">
+      <i class="bi bi-inbox"></i>
+      هیچ پرداختی یافت نشد
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 2 — موجودی گدام
+════════════════════════════════════════ -->
+<div class="cap-divider" data-label="موجودی گدام"></div>
+<div class="cap-section" id="sec-stock">
+  <div class="cap-section-header">
+    <div class="cap-section-title">
+      <span class="sec-icon orange"><i class="bi bi-boxes"></i></span>
+      موجودی گدام
+    </div>
+    <span class="cap-section-badge">بر اساس FIFO</span>
+  </div>
+
+  <div class="mini-card-row {% if currency %}single-col{% endif %}">
+    {% if currency != 'USD' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(234,88,12,0.12); color:#ea580c;">
+        <i class="bi bi-boxes"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">ارزش کل (افغانی)</div>
+        <div class="val cur-afn">{{ stock.total_afn|floatformat:2 }} ؋</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if currency != 'AFN' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(37,99,235,0.12); color:#2563eb;">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">ارزش کل (دالر)</div>
+        <div class="val cur-usd">$ {{ stock.total_usd|floatformat:2 }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if stock.warehouse_breakdown %}
+  <div class="banker-grid" style="margin-bottom:16px;">
+    {% for row in stock.warehouse_breakdown %}
+    <div class="banker-card">
+      <div class="banker-card-name">
+        <div class="avatar">{{ row.warehouse.name|first }}</div>
+        {{ row.warehouse.name }}
+      </div>
+      {% if currency != 'USD' %}
+      <div class="bal-row">
+        <span class="bal-label">ارزش (افغانی)</span>
+        <span class="cur-afn">{{ row.value_afn|floatformat:2 }} ؋</span>
+      </div>
+      {% endif %}
+      {% if currency != 'AFN' %}
+      <div class="bal-row">
+        <span class="bal-label">ارزش (دالر)</span>
+        <span class="cur-usd">$ {{ row.value_usd|floatformat:2 }}</span>
+      </div>
+      {% endif %}
+      <div class="bal-row">
+        <span class="bal-label">تعداد بچ</span>
+        <span style="font-weight:600;">{{ row.batch_count }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="cap-table-wrap">
+    {% if stock.product_stock %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>محصول</th>
+          <th>واحد</th>
+          <th>مقدار</th>
+          {% if currency != 'USD' %}<th>ارزش (افغانی)</th>{% endif %}
+          {% if currency != 'AFN' %}<th>ارزش (دالر)</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in stock.product_stock %}
+        <tr>
+          <td style="color:var(--text-muted); font-size:11px;">{{ forloop.counter }}</td>
+          <td style="font-weight:600;">{{ row.product__name }}</td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ row.product__unit }}</td>
+          <td style="font-weight:600;">{{ row.total_qty|floatformat:3 }}</td>
+          {% if currency != 'USD' %}
+          <td><span class="cur-afn">{{ row.total_val_afn|floatformat:2 }} ؋</span></td>
+          {% endif %}
+          {% if currency != 'AFN' %}
+          <td>
+            {% if row.total_val_usd %}
+              <span class="cur-usd">$ {{ row.total_val_usd|floatformat:2 }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">جمع کل</td>
+          {% if currency != 'USD' %}
+          <td><span class="cur-afn">{{ stock.total_afn|floatformat:2 }} ؋</span></td>
+          {% endif %}
+          {% if currency != 'AFN' %}
+          <td><span class="cur-usd">$ {{ stock.total_usd|floatformat:2 }}</span></td>
+          {% endif %}
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="empty-row">
+      <i class="bi bi-inbox"></i>
+      موجودی‌ای یافت نشد
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 3 — مصارف
+════════════════════════════════════════ -->
+<div class="cap-divider" data-label="مصارف"></div>
+<div class="cap-section" id="sec-expenses">
+  <div class="cap-section-header">
+    <div class="cap-section-title">
+      <span class="sec-icon red"><i class="bi bi-receipt-cutoff"></i></span>
+      مصارف
+    </div>
+  </div>
+
+  <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-bottom:16px;">
+    {% if currency == 'USD' %}
+    <div class="kpi-card red">
+      <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+      <div class="kpi-label">کل مصارف (دالر)</div>
+      <div class="kpi-value">$ {{ expenses.all_usd|floatformat:2 }}</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-icon"><i class="bi bi-calendar-month"></i></div>
+      <div class="kpi-label">مصارف این ماه (دالر)</div>
+      <div class="kpi-value">$ {{ expenses.month_usd|floatformat:2 }}</div>
+    </div>
+    {% else %}
+    <div class="kpi-card red">
+      <div class="kpi-icon"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="kpi-label">کل مصارف (افغانی)</div>
+      <div class="kpi-value">{{ expenses.all_afn|floatformat:2 }} ؋</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-icon"><i class="bi bi-calendar-month"></i></div>
+      <div class="kpi-label">مصارف این ماه (افغانی)</div>
+      <div class="kpi-value">{{ expenses.month_afn|floatformat:2 }} ؋</div>
+    </div>
+    {% endif %}
+    {% if filter_mode == 'range' %}
+      {% if currency != 'USD' %}
+      <div class="kpi-card purple">
+        <div class="kpi-icon"><i class="bi bi-calendar-range"></i></div>
+        <div class="kpi-label">بازه انتخابی (افغانی)</div>
+        <div class="kpi-value">{{ expenses.range_afn|floatformat:2 }} ؋</div>
+        <div class="kpi-sub">{{ date_from_str }} — {{ date_to_str }}</div>
+      </div>
+      {% endif %}
+      {% if currency != 'AFN' %}
+      <div class="kpi-card purple">
+        <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+        <div class="kpi-label">بازه انتخابی (دالر)</div>
+        <div class="kpi-value">$ {{ expenses.range_usd|floatformat:2 }}</div>
+        <div class="kpi-sub">{{ date_from_str }} — {{ date_to_str }}</div>
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="cap-table-wrap">
+    {% if expenses.recent_expenses %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>تاریخ</th>
+          <th>عنوان</th>
+          <th>دسته‌بندی</th>
+          <th>مبلغ</th>
+          <th>روش پرداخت</th>
+          <th>پرداخت به</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expenses.recent_expenses %}
+        {% if not currency or exp.currency == currency %}
+        <tr>
+          <td style="color:var(--text-muted); font-size:11px;">{{ forloop.counter }}</td>
+          <td style="font-size:12px;">{{ exp.expense_date|jalali }}</td>
+          <td style="font-weight:600;">{{ exp.title }}</td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ exp.category.name|default:"—" }}</td>
+          <td style="font-weight:700;">
+            {% if exp.currency == 'USD' %}
+              <span class="cur-usd">$ {{ exp.amount|floatformat:2 }}</span>
+            {% else %}
+              <span style="color:#dc2626; font-weight:700;">{{ exp.amount|floatformat:2 }} ؋</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge-method m-{{ exp.payment_method }}">
+              {{ exp.get_payment_method_display }}
+            </span>
+          </td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ exp.paid_to|default:"—" }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">جمع کل (همه زمان‌ها)</td>
+          <td>
+            {% if currency == 'USD' %}
+              <span class="cur-usd">$ {{ expenses.all_usd|floatformat:2 }}</span>
+            {% elif currency == 'AFN' %}
+              <span style="color:#dc2626; font-weight:700;">{{ expenses.all_afn|floatformat:2 }} ؋</span>
+            {% else %}
+              <span style="color:#dc2626; font-weight:700;">{{ expenses.all_afn|floatformat:2 }} ؋</span>
+              &nbsp;/&nbsp;
+              <span class="cur-usd">$ {{ expenses.all_usd|floatformat:2 }}</span>
+            {% endif %}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="empty-row">
+      <i class="bi bi-inbox"></i>
+      هیچ مصرفی یافت نشد
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 4 — بیلانس صراف
+════════════════════════════════════════ -->
+<div class="cap-divider" data-label="بیلانس صراف"></div>
+<div class="cap-section" id="sec-banker">
+  <div class="cap-section-header">
+    <div class="cap-section-title">
+      <span class="sec-icon teal"><i class="bi bi-bank2"></i></span>
+      بیلانس صراف
+    </div>
+    <span class="cap-section-badge">{{ banker_data.bankers|length }} صراف فعال</span>
+  </div>
+
+  <div class="mini-card-row {% if currency %}single-col{% endif %}" style="margin-bottom:16px;">
+    {% if currency != 'USD' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(13,148,136,0.12); color:#0d9488;">
+        <i class="bi bi-bank2"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">مجموع مانده (افغانی)</div>
+        <div class="val {% if banker_data.total_afn >= 0 %}cur-afn{% else %}text-danger{% endif %}">
+          {{ banker_data.total_afn|floatformat:2 }} ؋
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% if currency != 'AFN' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(37,99,235,0.12); color:#2563eb;">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">مجموع مانده (دالر)</div>
+        <div class="val {% if banker_data.total_usd >= 0 %}cur-usd{% else %}text-danger{% endif %}">
+          $ {{ banker_data.total_usd|floatformat:2 }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if banker_data.bankers %}
+  <div class="banker-grid">
+    {% for bnk in banker_data.bankers %}
+    <div class="banker-card">
+      <div class="banker-card-name">
+        <div class="avatar">{{ bnk.name|first }}</div>
+        {{ bnk.name }}
+      </div>
+      {% if currency != 'USD' %}
+      <div class="bal-row">
+        <span class="bal-label">مانده ؋</span>
+        <span class="{% if bnk.balance_afn > 0 %}bal-pos{% elif bnk.balance_afn < 0 %}bal-neg{% else %}bal-zero{% endif %}">
+          {{ bnk.balance_afn|floatformat:2 }} ؋
+        </span>
+      </div>
+      {% endif %}
+      {% if currency != 'AFN' %}
+      <div class="bal-row">
+        <span class="bal-label">مانده $</span>
+        <span class="{% if bnk.balance_usd > 0 %}bal-pos{% elif bnk.balance_usd < 0 %}bal-neg{% else %}bal-zero{% endif %}">
+          $ {{ bnk.balance_usd|floatformat:2 }}
+        </span>
+      </div>
+      {% endif %}
+      {% if bnk.balance_eur != 0 %}
+      <div class="bal-row">
+        <span class="bal-label">مانده €</span>
+        <span class="{% if bnk.balance_eur > 0 %}bal-pos{% elif bnk.balance_eur < 0 %}bal-neg{% else %}bal-zero{% endif %}">
+          € {{ bnk.balance_eur|floatformat:2 }}
+        </span>
+      </div>
+      {% endif %}
+      {% if bnk.balance_irr != 0 %}
+      <div class="bal-row">
+        <span class="bal-label">مانده تومان</span>
+        <span class="{% if bnk.balance_irr > 0 %}bal-pos{% elif bnk.balance_irr < 0 %}bal-neg{% else %}bal-zero{% endif %}">
+          {{ bnk.balance_irr|floatformat:0 }} تومان
+        </span>
+      </div>
+      {% endif %}
+      <div style="margin-top:12px;">
+        <a href="{% url 'banker:banker_detail' bnk.pk %}"
+           class="btn btn-sm btn-outline-primary w-100" style="font-size:12px;">
+          <i class="bi bi-eye me-1"></i>مشاهده کامل
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cap-table-wrap">
+    <div class="empty-row"><i class="bi bi-bank2"></i> هیچ صرافی یافت نشد</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 5 — انتقال به صراف
+════════════════════════════════════════ -->
+<div class="cap-divider" data-label="انتقال به صراف"></div>
+<div class="cap-section" id="sec-transfers">
+  <div class="cap-section-header">
+    <div class="cap-section-title">
+      <span class="sec-icon purple"><i class="bi bi-arrow-left-right"></i></span>
+      انتقال دخل دکان به صراف
+    </div>
+  </div>
+
+  <!-- Transfer Form -->
+  <div class="transfer-form-card">
+    <div class="transfer-form-header">
+      <i class="bi bi-send"></i>
+      ثبت انتقال جدید
+    </div>
+    <div class="transfer-form-body">
+      <form method="post" action="{% url 'capital:transfer_to_banker' %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">صراف <span class="text-danger">*</span></label>
+            <select name="banker_id" class="form-select" required>
+              <option value="">— انتخاب صراف —</option>
+              {% for bnk in bankers %}
+                <option value="{{ bnk.pk }}">{{ bnk.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">مبلغ <span class="text-danger">*</span></label>
+            <input type="number" name="amount" step="0.01" min="0.01"
+                   class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">ارز</label>
+            <select name="currency" class="form-select">
+              <option value="AFN" {% if currency == 'AFN' %}selected{% endif %}>افغانی ؋</option>
+              <option value="USD" {% if currency == 'USD' %}selected{% endif %}>دالر $</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">تاریخ (شمسی)</label>
+            <div class="d-flex gap-1" dir="ltr">
+              <select id="trfDay" class="form-select form-select-sm" style="width:52px;"></select>
+              <select id="trfMonth" class="form-select form-select-sm" style="width:70px;"></select>
+              <select id="trfYear" class="form-select form-select-sm" style="width:65px;"></select>
+            </div>
+            <input type="hidden" name="transfer_date" id="transferDateHidden"
+                   value="{{ transfer_date|jalali }}" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">یادداشت</label>
+            <input type="text" name="notes" class="form-control" placeholder="اختیاری">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-send me-2"></i>انتقال دادن
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Transfer Summary -->
+  <div class="mini-card-row {% if currency %}single-col{% endif %}" style="margin-bottom:16px;">
+    {% if currency != 'USD' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(147,51,234,0.12); color:#9333ea;">
+        <i class="bi bi-arrow-left-right"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">جمع انتقالات (افغانی)</div>
+        <div class="val cur-afn">{{ transfer_total_afn|floatformat:2 }} ؋</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if currency != 'AFN' %}
+    <div class="mini-card">
+      <div class="mini-card-icon" style="background:rgba(37,99,235,0.12); color:#2563eb;">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+      <div class="mini-card-body">
+        <div class="label">جمع انتقالات (دالر)</div>
+        <div class="val cur-usd">$ {{ transfer_total_usd|floatformat:2 }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Transfers Table -->
+  <div class="cap-table-wrap">
+    {% if transfers %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>تاریخ</th>
+          <th>صراف</th>
+          <th>مبلغ</th>
+          <th>ارز</th>
+          <th>یادداشت</th>
+          <th>ثبت‌کننده</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tr in transfers %}
+        {% if not currency or tr.currency == currency %}
+        <tr>
+          <td style="color:var(--text-muted); font-size:11px;">{{ forloop.counter }}</td>
+          <td style="font-size:12px;">{{ tr.transfer_date|jalali }}</td>
+          <td style="font-weight:600;">{{ tr.banker.name }}</td>
+          <td style="font-weight:700;">
+            {% if tr.currency == 'USD' %}
+              <span class="cur-usd">$ {{ tr.amount|floatformat:2 }}</span>
+            {% else %}
+              <span class="cur-afn">{{ tr.amount|floatformat:2 }} ؋</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if tr.currency == 'USD' %}
+              <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size:11px;">دالر</span>
+            {% else %}
+              <span class="badge bg-success bg-opacity-10 text-success" style="font-size:11px;">افغانی</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ tr.notes|default:"—" }}</td>
+          <td style="color:var(--text-muted); font-size:12px;">{{ tr.created_by.display_name|default:"—" }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">جمع</td>
+          <td>
+            {% if currency == 'USD' %}
+              <span class="cur-usd">$ {{ transfer_total_usd|floatformat:2 }}</span>
+            {% elif currency == 'AFN' %}
+              <span class="cur-afn">{{ transfer_total_afn|floatformat:2 }} ؋</span>
+            {% else %}
+              <span class="cur-afn">{{ transfer_total_afn|floatformat:2 }} ؋</span>
+              &nbsp;/&nbsp;
+              <span class="cur-usd">$ {{ transfer_total_usd|floatformat:2 }}</span>
+            {% endif %}
+          </td>
+          <td colspan="3"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="empty-row">
+      <i class="bi bi-inbox"></i>
+      هیچ انتقالی ثبت نشده
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Back to top -->
+<div style="text-align:center; margin-top:32px;">
+  <a href="#" style="color:var(--text-muted); font-size:12px; text-decoration:none;">
+    <i class="bi bi-arrow-up-circle me-1"></i>بازگشت به بالا
+  </a>
+</div>
+
+</div>
+{% block extra_js %}
+<script>
+// ── Jalali month names + leap-year helpers (shared) ──
+const JALALI_MONTHS_CAP = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeapCap(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLengthCap(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeapCap(year) ? 30 : 29;
+}
+
+// ── Required picker (used for the transfer form's تاریخ) ──
+function setupJalaliPickerCap(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+  if (!hidden || !daySel || !monthSel || !yearSel) return;
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS_CAP.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLengthCap(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+// ── Optional picker (used for the از/تا تاریخ range filter) ──
+function setupOptionalJalaliPickerCap(hiddenId, dayId, monthId, yearId) {
+  const hidden   = document.getElementById(hiddenId);
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+  if (!hidden || !daySel || !monthSel || !yearSel) return;
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parts.length === 3 ? parseInt(parts[0]) : '';
+  const initMonth = parts.length === 3 ? parseInt(parts[1]) : '';
+  const initDay   = parts.length === 3 ? parseInt(parts[2]) : '';
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear && initYear < rangeStart) rangeStart = initYear;
+  if (initYear && initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '<option value="">سال</option>';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '<option value="">ماه</option>';
+  JALALI_MONTHS_CAP.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    daySel.innerHTML = '<option value="">روز</option>';
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', updateHidden);
+  monthSel.addEventListener('change', updateHidden);
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupOptionalJalaliPickerCap('capDateFromHidden', 'capFromDay', 'capFromMonth', 'capFromYear');
+setupOptionalJalaliPickerCap('capDateToHidden', 'capToDay', 'capToMonth', 'capToYear');
+setupJalaliPickerCap('transferDateHidden', 'trfDay', 'trfMonth', 'trfYear');
+</script>
+{% endblock %}
+{% endblock %}

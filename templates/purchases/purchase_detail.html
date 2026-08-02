@@ -1,0 +1,312 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}فاکتور خرید {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-receipt-cutoff"></i></span>
+    {{ invoice.invoice_number }}
+    {% if invoice.currency == 'USD' %}
+      <span class="erp-badge erp-badge-info">دالر $</span>
+    {% endif %}
+    {% if invoice.status == 'paid' %}
+      <span class="erp-badge erp-badge-success">پرداخت کامل</span>
+    {% elif invoice.status == 'partial' %}
+      <span class="erp-badge erp-badge-warning">پرداخت جزئی</span>
+    {% elif invoice.status == 'unpaid' %}
+      <span class="erp-badge erp-badge-danger">پرداخت نشده</span>
+    {% endif %}
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'purchases:purchase_print' invoice.pk %}" target="_blank"
+       class="btn-erp btn-erp-outline">
+      <i class="bi bi-printer"></i> پرینت
+    </a>
+    <a href="{% url 'purchases:purchase_list' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Items -->
+  <div class="col-lg-8">
+
+    <!-- Header Info -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-body">
+        <div class="row g-3" style="font-size:13px;">
+          <div class="col-md-4">
+            <div style="color:var(--text-muted);margin-bottom:4px;">تامین‌کننده</div>
+            <strong style="font-size:15px;">{{ invoice.supplier.name }}</strong>
+            {% if invoice.supplier.phone %}
+              <div style="color:var(--text-muted);direction:ltr;">
+                {{ invoice.supplier.phone }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <div style="color:var(--text-muted);margin-bottom:4px;">تاریخ خرید</div>
+            <strong>{{ invoice.purchase_date|jalali }}</strong>
+          </div>
+          <div class="col-md-4">
+            <div style="color:var(--text-muted);margin-bottom:4px;">انبار</div>
+            <strong>{{ invoice.warehouse.name }}</strong>
+          </div>
+          {% if invoice.payment_method == 'saraf' and invoice.banker %}
+          <div class="col-md-6">
+            <div style="color:var(--text-muted);margin-bottom:4px;">روش پرداخت</div>
+            <strong>
+              صراف —
+              <span style="color:var(--accent-blue);">{{ invoice.banker.name }}</span>
+            </strong>
+          </div>
+          {% endif %}
+          {% if invoice.supplier_invoice_number %}
+          <div class="col-md-6">
+            <div style="color:var(--text-muted);margin-bottom:4px;">
+              شماره فاکتور تامین‌کننده
+            </div>
+            <strong style="direction:ltr;">{{ invoice.supplier_invoice_number }}</strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-list-ol"></i>
+          </span>
+          ردیف‌های خرید
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+<table class="erp-table">
+          <thead>
+            <tr>
+              <th>#</th><th>محصول</th>
+              <th style="text-align:center;">مقدار</th>
+              <th style="text-align:left;">قیمت خرید</th>
+              <th>بچ ایجاد شده</th>
+              <th>انقضا</th>
+              <th style="text-align:left;">مجموع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in invoice.items.all %}
+            <tr>
+              <td style="color:var(--text-muted);font-size:12px;">{{ forloop.counter }}</td>
+              <td><strong>{{ item.product.name }}</strong></td>
+              <td style="text-align:center;font-weight:700;">
+                {{ item.quantity|floatformat:"-3" }}
+                <span style="font-size:11px;color:var(--text-muted);">
+                  {{ item.product.unit.abbreviation }}
+                </span>
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:600;">
+                {% if invoice.currency == 'USD' %}
+                  {{ item.unit_cost|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ item.unit_cost|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+              <td>
+                {% if item.batch %}
+                  <span style="font-family:monospace;font-size:12px;
+                               color:var(--accent-blue);">
+                    {{ item.batch.batch_number }}
+                  </span>
+                {% else %}—{% endif %}
+              </td>
+              <td style="font-size:12px;">{{ item.expiry_date|jalali|default:"—" }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {% if invoice.currency == 'USD' %}
+                  {{ item.line_total|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ item.line_total|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--table-header);">
+              <td colspan="6" style="padding:12px 16px;font-weight:700;text-align:right;">
+                مجموع
+              </td>
+              <td style="padding:12px 16px;font-weight:800;direction:ltr;text-align:left;">
+                {% if invoice.currency == 'USD' %}
+                  {{ invoice.total_amount|floatformat:2|intcomma }} $
+                {% else %}
+                  {{ invoice.total_amount|floatformat:0|intcomma }} ؋
+                {% endif %}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Summary + Payment -->
+  <div class="col-lg-4">
+
+    <!-- Financial Summary -->
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+            <i class="bi bi-calculator"></i>
+          </span>
+          خلاصه مالی
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div style="font-size:13px;">
+          {% if invoice.discount_amount > 0 %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">جمع قبل تخفیف</span>
+            <strong style="direction:ltr;">
+              {% if invoice.currency == 'USD' %}{{ invoice.subtotal|floatformat:2|intcomma }} $
+              {% else %}{{ invoice.subtotal|floatformat:0|intcomma }} ؋{% endif %}
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">تخفیف</span>
+            <strong style="direction:ltr;color:var(--accent-orange);">
+              - {% if invoice.currency == 'USD' %}{{ invoice.discount_amount|floatformat:2|intcomma }} $
+              {% else %}{{ invoice.discount_amount|floatformat:0|intcomma }} ؋{% endif %}
+            </strong>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="font-weight:700;">مبلغ فاکتور</span>
+            <strong style="direction:ltr;font-size:16px;color:var(--accent-blue);">
+              {% if invoice.currency == 'USD' %}{{ invoice.total_amount|floatformat:2|intcomma }} $
+              {% else %}{{ invoice.total_amount|floatformat:0|intcomma }} ؋{% endif %}
+            </strong>
+          </div>
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">پرداخت شده</span>
+            <strong style="direction:ltr;color:var(--accent-green);">
+              {% if invoice.currency == 'USD' %}{{ invoice.paid_amount|floatformat:2|intcomma }} $
+              {% else %}{{ invoice.paid_amount|floatformat:0|intcomma }} ؋{% endif %}
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span style="color:var(--text-muted);">باقی‌مانده</span>
+            <strong style="direction:ltr;
+              color:{% if invoice.remaining_amount > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+              {% if invoice.currency == 'USD' %}{{ invoice.remaining_amount|floatformat:2|intcomma }} $
+              {% else %}{{ invoice.remaining_amount|floatformat:0|intcomma }} ؋{% endif %}
+            </strong>
+          </div>
+          {% if invoice.payment_method == 'saraf' and invoice.banker %}
+          <div class="divider"></div>
+          <div class="d-flex justify-content-between">
+            <span style="color:var(--text-muted);">از طریق صراف</span>
+            <strong style="color:var(--accent-blue);">{{ invoice.banker.name }}</strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Payment -->
+    {% if invoice.status != 'paid' %}
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-cash-coin me-2" style="color:var(--accent-red);"></i>
+          ثبت پرداخت به تامین‌کننده
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="add_payment" value="1">
+
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.currency.label }}</label>
+            {{ payment_form.currency }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.amount.label }}</label>
+            {{ payment_form.amount }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_method.label }}</label>
+            {{ payment_form.payment_method }}
+          </div>
+          <div class="mb-3" id="purchaseBankerWrapper" style="display:none;">
+            <label class="erp-label">{{ payment_form.banker_id.label }}</label>
+            {{ payment_form.banker_id }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.payment_date.label }}</label>
+            {{ payment_form.payment_date }}
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ payment_form.notes.label }}</label>
+            {{ payment_form.notes }}
+          </div>
+
+          <div class="mb-3 p-2 rounded"
+               style="background:rgba(239,68,68,.06);font-size:12px;
+                      border:1px solid rgba(239,68,68,.15);">
+            مانده:
+            <strong style="direction:ltr;">
+              {% if invoice.currency == 'USD' %}
+                {{ invoice.remaining_amount|floatformat:2|intcomma }} $
+              {% else %}
+                {{ invoice.remaining_amount|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </strong>
+          </div>
+
+          <button type="submit" class="btn-erp btn-erp-danger w-100"
+                  style="padding:12px;">
+            <i class="bi bi-check-circle"></i> ثبت پرداخت
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const purchasePaymentMethod = document.getElementById('purchasePaymentMethod');
+const purchaseBankerWrapper = document.getElementById('purchaseBankerWrapper');
+
+function togglePurchaseBanker() {
+  if (purchasePaymentMethod && purchasePaymentMethod.value === 'saraf') {
+    purchaseBankerWrapper.style.display = 'block';
+  } else {
+    purchaseBankerWrapper.style.display = 'none';
+  }
+}
+
+if (purchasePaymentMethod) {
+  purchasePaymentMethod.addEventListener('change', togglePurchaseBanker);
+  togglePurchaseBanker();
+}
+</script>
+{% endblock %}

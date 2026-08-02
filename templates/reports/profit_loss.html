@@ -1,0 +1,344 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}سود و زیان{% endblock %}
+{% block page_title %}سود و زیان{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon">
+      <i class="bi bi-graph-up-arrow"></i>
+    </span>
+    گزارش سود و زیان
+  </h1>
+  <button onclick="window.print()" class="btn-erp btn-erp-outline no-print">
+    <i class="bi bi-printer"></i> پرینت
+  </button>
+</div>
+
+{% include 'partials/period_filter.html' with periods=period_choices period=period date_from=date_from date_to=date_to %}
+
+<!-- P&L Summary Card — AFN -->
+<div class="erp-card mb-4"
+     style="border-color:{% if is_profit %}rgba(16,185,129,.3){% else %}rgba(239,68,68,.3){% endif %};
+            background:{% if is_profit %}rgba(16,185,129,.04){% else %}rgba(239,68,68,.04){% endif %};">
+  <div class="erp-card-body" style="padding:28px;">
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      <i class="bi bi-cash me-1"></i> افغانی ؋
+    </div>
+    <div class="row g-4 align-items-center">
+      <div class="col-md-8">
+        <div class="row g-3" style="font-size:14px;">
+          <!-- Revenue -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="font-size:15px;font-weight:600;">
+                <i class="bi bi-cart3 me-2" style="color:var(--accent-blue);"></i>
+                درآمد فروش
+              </span>
+              <strong style="direction:ltr;font-size:18px;
+                             color:var(--accent-blue);">
+                {{ total_revenue|floatformat:0|intcomma }} ؋
+              </strong>
+            </div>
+          </div>
+          <!-- COGS -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="color:var(--text-muted);">
+                <i class="bi bi-dash-lg me-2"></i>
+                قیمت تمام شده کالا (FIFO)
+              </span>
+              <strong style="direction:ltr;color:var(--accent-orange);">
+                {{ total_cogs|floatformat:0|intcomma }} ؋
+              </strong>
+            </div>
+          </div>
+          <!-- Gross Profit -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:rgba(16,185,129,.08);
+                        border:1px solid rgba(16,185,129,.2);">
+              <span style="font-weight:700;">
+                <i class="bi bi-equals me-2"></i>
+                سود ناخالص
+              </span>
+              <strong style="direction:ltr;font-size:16px;
+                             color:var(--accent-green);">
+                {{ gross_profit|floatformat:0|intcomma }} ؋
+                <span style="font-size:12px;">({{ gross_margin|floatformat:1 }}%)</span>
+              </strong>
+            </div>
+          </div>
+          <!-- Expenses -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="color:var(--text-muted);">
+                <i class="bi bi-dash-lg me-2"></i>
+                مصارف عمومی
+              </span>
+              <strong style="direction:ltr;color:var(--accent-red);">
+                {{ total_expenses|floatformat:0|intcomma }} ؋
+              </strong>
+            </div>
+          </div>
+          <!-- Net Profit -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:{% if is_profit %}rgba(16,185,129,.12){% else %}rgba(239,68,68,.12){% endif %};
+                        border:2px solid {% if is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              <span style="font-size:16px;font-weight:800;">
+                سود / زیان خالص
+              </span>
+              <strong style="direction:ltr;font-size:22px;
+                font-weight:900;
+                color:{% if is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                {% if is_profit %}+{% endif %}{{ net_profit|floatformat:0|intcomma }} ؋
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 text-center">
+        <div style="font-size:60px;
+          color:{% if is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          <i class="bi bi-{% if is_profit %}emoji-smile{% else %}emoji-frown{% endif %}"></i>
+        </div>
+        <div style="font-size:20px;font-weight:800;margin-top:12px;
+          color:{% if is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {% if is_profit %}سود{% else %}زیان{% endif %}
+        </div>
+        <div style="font-size:28px;font-weight:900;direction:ltr;
+          color:{% if is_profit %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ profit_margin|floatformat:1 }}%
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);">
+          حاشیه سود خالص
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- P&L Summary Card — USD (only if there's USD sales activity) -->
+{% if total_revenue_usd %}
+<div class="erp-card mb-4"
+     style="border-color:{% if is_profit_usd %}rgba(16,185,129,.3){% else %}rgba(239,68,68,.3){% endif %};
+            background:{% if is_profit_usd %}rgba(16,185,129,.04){% else %}rgba(239,68,68,.04){% endif %};">
+  <div class="erp-card-body" style="padding:28px;">
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      <i class="bi bi-currency-dollar me-1"></i> دالر $
+    </div>
+    <div class="row g-4 align-items-center">
+      <div class="col-md-8">
+        <div class="row g-3" style="font-size:14px;">
+          <!-- Revenue -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="font-size:15px;font-weight:600;">
+                <i class="bi bi-cart3 me-2" style="color:var(--accent-blue);"></i>
+                درآمد فروش
+              </span>
+              <strong style="direction:ltr;font-size:18px;
+                             color:var(--accent-blue);">
+                {{ total_revenue_usd|floatformat:2|intcomma }} $
+              </strong>
+            </div>
+          </div>
+          <!-- COGS -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="color:var(--text-muted);">
+                <i class="bi bi-dash-lg me-2"></i>
+                قیمت تمام شده کالا (FIFO)
+              </span>
+              <strong style="direction:ltr;color:var(--accent-orange);">
+                {{ total_cogs_usd|floatformat:2|intcomma }} $
+              </strong>
+            </div>
+          </div>
+          <!-- Gross Profit -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:rgba(16,185,129,.08);
+                        border:1px solid rgba(16,185,129,.2);">
+              <span style="font-weight:700;">
+                <i class="bi bi-equals me-2"></i>
+                سود ناخالص
+              </span>
+              <strong style="direction:ltr;font-size:16px;
+                             color:var(--accent-green);">
+                {{ gross_profit_usd|floatformat:2|intcomma }} $
+                <span style="font-size:12px;">({{ gross_margin_usd|floatformat:1 }}%)</span>
+              </strong>
+            </div>
+          </div>
+          <!-- Expenses (USD) -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:var(--bg-secondary);">
+              <span style="color:var(--text-muted);">
+                <i class="bi bi-dash-lg me-2"></i>
+                مصارف عمومی
+              </span>
+              <strong style="direction:ltr;color:var(--accent-red);">
+                {{ total_expenses_usd|floatformat:2|intcomma }} $
+              </strong>
+            </div>
+          </div>
+          <!-- Net Profit -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center
+                        p-3 rounded"
+                 style="background:{% if is_profit_usd %}rgba(16,185,129,.12){% else %}rgba(239,68,68,.12){% endif %};
+                        border:2px solid {% if is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+              <span style="font-size:16px;font-weight:800;">
+                سود / زیان خالص
+              </span>
+              <strong style="direction:ltr;font-size:22px;
+                font-weight:900;
+                color:{% if is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                {% if is_profit_usd %}+{% endif %}{{ net_profit_usd|floatformat:2|intcomma }} $
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4 text-center">
+        <div style="font-size:60px;
+          color:{% if is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          <i class="bi bi-{% if is_profit_usd %}emoji-smile{% else %}emoji-frown{% endif %}"></i>
+        </div>
+        <div style="font-size:20px;font-weight:800;margin-top:12px;
+          color:{% if is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {% if is_profit_usd %}سود{% else %}زیان{% endif %}
+        </div>
+        <div style="font-size:28px;font-weight:900;direction:ltr;
+          color:{% if is_profit_usd %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ profit_margin_usd|floatformat:1 }}%
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);">
+          حاشیه سود خالص
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Expense Breakdown -->
+{% if expense_breakdown %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(239,68,68,.1);color:var(--accent-red);">
+        <i class="bi bi-cash-stack"></i>
+      </span>
+      تفکیک مصارف
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+<table class="erp-table">
+      <thead>
+        <tr>
+          <th>دسته‌بندی مصارف</th>
+          <th style="text-align:left;">مبلغ</th>
+          <th>نسبت به کل مصارف (همان ارز)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expense_breakdown %}
+        <tr>
+          <td>
+            <span class="erp-badge erp-badge-danger">
+              {{ exp.category__name|default:"بدون دسته" }}
+            </span>
+            <span class="erp-badge" style="background:var(--bg-tertiary);color:var(--text-muted);margin-right:4px;">
+              {% if exp.currency == 'USD' %}دالر{% else %}افغانی{% endif %}
+            </span>
+          </td>
+          <td style="text-align:left;direction:ltr;font-weight:700;
+                     color:var(--accent-red);">
+            {% if exp.currency == 'USD' %}
+              {{ exp.total|floatformat:2|intcomma }} $
+            {% else %}
+              {{ exp.total|floatformat:0|intcomma }} ؋
+            {% endif %}
+          </td>
+          <td>
+            {% if exp.currency == 'USD' %}
+              {% if total_expenses_usd > 0 %}
+                {% widthratio exp.total total_expenses_usd 100 as pct %}
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="flex:1;background:var(--bg-tertiary);
+                              border-radius:4px;height:6px;">
+                    <div style="width:{{ pct }}%;background:var(--accent-red);
+                                border-radius:4px;height:6px;"></div>
+                  </div>
+                  <span style="font-size:12px;color:var(--text-muted);
+                               min-width:35px;">{{ pct }}%</span>
+                </div>
+              {% endif %}
+            {% else %}
+              {% if total_expenses > 0 %}
+                {% widthratio exp.total total_expenses 100 as pct %}
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="flex:1;background:var(--bg-tertiary);
+                              border-radius:4px;height:6px;">
+                    <div style="width:{{ pct }}%;background:var(--accent-red);
+                                border-radius:4px;height:6px;"></div>
+                  </div>
+                  <span style="font-size:12px;color:var(--text-muted);
+                               min-width:35px;">{{ pct }}%</span>
+                </div>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--table-header);font-weight:800;">
+          <td style="padding:12px 16px;">مجموع (افغانی)</td>
+          <td style="padding:12px 16px;text-align:left;direction:ltr;
+                     color:var(--accent-red);">
+            {{ total_expenses|floatformat:0|intcomma }} ؋
+          </td>
+          <td></td>
+        </tr>
+        {% if total_expenses_usd %}
+        <tr style="background:var(--table-header);font-weight:800;">
+          <td style="padding:12px 16px;">مجموع (دالر)</td>
+          <td style="padding:12px 16px;text-align:left;direction:ltr;
+                     color:var(--accent-red);">
+            {{ total_expenses_usd|floatformat:2|intcomma }} $
+          </td>
+          <td></td>
+        </tr>
+        {% endif %}
+      </tfoot>
+    </table>
+</div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

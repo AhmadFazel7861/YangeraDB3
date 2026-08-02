@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-box-seam"></i></span>
+    {{ page_title }}
+  </h1>
+  <a href="{% url 'inventory:product_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Right column: main info -->
+    <div class="col-lg-8">
+
+      <!-- Basic Info Card -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+              <i class="bi bi-info-circle"></i>
+            </span>
+            اطلاعات پایه
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.name.label }} <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="erp-field-error">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.name_en.label }}</label>
+              {{ form.name_en }}
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.code.label }}</label>
+              {{ form.code }}
+              <small style="font-size:11px;color:var(--text-muted);">اگر خالی باشد خودکار تولید می‌شود</small>
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.category.label }}</label>
+              {{ form.category }}
+              {% if form.category.errors %}<div class="erp-field-error">{{ form.category.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.unit.label }} <span class="text-danger">*</span></label>
+              {{ form.unit }}
+              {% if form.unit.errors %}<div class="erp-field-error">{{ form.unit.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing Card -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-cash-stack"></i>
+            </span>
+            قیمت‌گذاری
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.sale_price.label }}</label>
+              <div style="position:relative;">
+                {{ form.sale_price }}
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);">؋</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.sale_price_usd.label }}</label>
+              <div style="position:relative;">
+                {{ form.sale_price_usd }}
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);">$</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 p-3 rounded" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);font-size:12px;color:var(--text-muted);">
+            <i class="bi bi-info-circle me-1"></i>
+            قیمت خرید واقعی از طریق FIFO در هر خریداری محاسبه می‌شود.
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="erp-card">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+              <i class="bi bi-sticky"></i>
+            </span>
+            یادداشت
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          {{ form.notes }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Left column: settings -->
+    <div class="col-lg-4">
+
+      <!-- Stock Settings -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(239,68,68,.1);color:var(--accent-red);">
+              <i class="bi bi-archive"></i>
+            </span>
+            تنظیمات موجودی
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="mb-3">
+            <label class="erp-label">{{ form.minimum_stock.label }}</label>
+            {{ form.minimum_stock }}
+            <small style="font-size:11px;color:var(--text-muted);">برای هشدار موجودی کم</small>
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">{{ form.maximum_stock.label }}</label>
+            {{ form.maximum_stock }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Expiry Settings -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(245,158,11,.1);color:var(--accent-orange);">
+              <i class="bi bi-clock"></i>
+            </span>
+            تاریخ انقضا
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="mb-3 d-flex align-items-center gap-2">
+            {{ form.has_expiry }}
+            <label class="form-check-label" for="id_has_expiry" style="font-size:14px;cursor:pointer;">
+              {{ form.has_expiry.label }}
+            </label>
+          </div>
+          <div id="expirySection" style="display:none;">
+            <label class="erp-label">{{ form.expiry_warning_days.label }}</label>
+            {{ form.expiry_warning_days }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-toggle-on"></i>
+            </span>
+            وضعیت
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="d-flex align-items-center gap-2">
+            {{ form.is_active }}
+            <label class="form-check-label" style="font-size:14px;cursor:pointer;">
+              {{ form.is_active.label }}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Buttons -->
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn-erp btn-erp-primary" style="padding:12px;font-size:15px;">
+          <i class="bi bi-check-circle"></i> {{ action }} محصول
+        </button>
+        {% if action == 'ثبت' %}
+        <button type="submit" name="save_and_new" value="1"
+                class="btn-erp btn-erp-outline" style="padding:12px;">
+          <i class="bi bi-plus-circle"></i> ثبت و محصول جدید
+        </button>
+        {% endif %}
+        <a href="{% url 'inventory:product_list' %}" class="btn-erp btn-erp-outline" style="padding:12px;text-align:center;">
+          انصراف
+        </a>
+      </div>
+
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show/hide expiry section
+const hasExpiryCheck = document.getElementById('id_has_expiry');
+const expirySection  = document.getElementById('expirySection');
+
+function toggleExpiry() {
+  expirySection.style.display = hasExpiryCheck.checked ? 'block' : 'none';
+}
+
+hasExpiryCheck.addEventListener('change', toggleExpiry);
+toggleExpiry(); // on load
+</script>
+{% endblock %}

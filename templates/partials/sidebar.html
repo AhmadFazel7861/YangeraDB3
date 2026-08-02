@@ -1,0 +1,75 @@
+{% load static %}
+
+<aside class="erp-sidebar" id="erpSidebar">
+
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      {% if BUSINESS_LOGO %}
+        <img src="{{ BUSINESS_LOGO.url }}" alt="{{ BUSINESS_NAME }}"
+             style="width:100%;height:100%;object-fit:contain;border-radius:8px;">
+      {% else %}
+        <i class="bi bi-shop"></i>
+      {% endif %}
+    </div>
+    <div class="sidebar-brand-text">
+      <h6>{{ BUSINESS_NAME }}</h6>
+      <small>سیستم مدیریت ERP</small>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav" id="sidebarNav">
+
+    {% for item in sidebar_menu %}
+
+      {% if item.children %}
+        <!-- Parent with submenu -->
+        <div class="nav-item-wrapper">
+          <button class="nav-link-item nav-parent"
+                  data-menu-id="{{ forloop.counter }}">
+            <i class="bi {{ item.icon }} nav-icon"></i>
+            <span class="nav-label">{{ item.label }}</span>
+            <i class="bi bi-chevron-left nav-arrow"></i>
+          </button>
+        </div>
+
+        <div class="nav-submenu">
+          {% for child in item.children %}
+            <div class="nav-item-wrapper">
+              <a href="{{ child.url }}" class="nav-link-item">
+                <i class="bi {{ child.icon }} nav-icon"></i>
+                <span class="nav-label">{{ child.label }}</span>
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+
+      {% else %}
+        <!-- Single link -->
+        <div class="nav-item-wrapper">
+          <a href="{{ item.url }}" class="nav-link-item">
+            <i class="bi {{ item.icon }} nav-icon"></i>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        </div>
+      {% endif %}
+
+    {% endfor %}
+
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <div class="sidebar-user-card">
+      <div class="user-avatar">
+        {{ user.display_name|first|upper }}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ user.display_name }}</div>
+        <div class="user-role">{{ user.get_role_display }}</div>
+      </div>
+    </div>
+  </div>
+
+</aside>

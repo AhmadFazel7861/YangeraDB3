@@ -1,0 +1,799 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}فاکتور فروش جدید{% endblock %}
+{% block page_title %}فاکتور فروش جدید{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-plus-circle"></i></span>
+    فاکتور فروش جدید
+  </h1>
+  <a href="{% url 'sales:invoice_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<form method="post" id="invoiceForm">
+  {% csrf_token %}
+  <input type="hidden" name="items_json" id="itemsJson">
+  <input type="hidden" name="delivery_choice" id="deliveryChoice" value="pending">
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <!-- Header Info -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+              <i class="bi bi-info-circle"></i>
+            </span>
+            اطلاعات فاکتور
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="erp-label">مشتری *</label>
+              <select name="customer_id" id="customerSelect" class="erp-form-control" required>
+                <option value="">-- مشتری را انتخاب کنید --</option>
+                {% for c in customers %}
+                  <option value="{{ c.pk }}">{{ c.name }}{% if c.phone %} — {{ c.phone }}{% endif %}</option>
+                {% endfor %}
+              </select>
+              <div id="customerDebtInfo" class="mt-1"
+                   style="font-size:12px;color:var(--accent-red);display:none;">
+                بدهی قبلی: <strong id="customerDebtAmount">0</strong> ؋
+              </div>
+              <div id="creditLimitWarning" class="mt-1 p-2 rounded"
+                   style="font-size:12px;color:#fff;background:var(--accent-red);display:none;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span id="creditLimitWarningText">این فروش از حد اعتبار مشتری بیشتر می‌شود!</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">انبار *</label>
+              <select name="warehouse_id" id="warehouseSelect" class="erp-form-control" required>
+                {% for w in warehouses %}
+                  <option value="{{ w.pk }}"
+                    {% if default_warehouse and w.pk == default_warehouse.pk %}selected{% endif %}>
+                    {{ w.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">تاریخ (شمسی) *</label>
+              <div style="display:flex;gap:4px;" dir="ltr">
+                <select id="jDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="jMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="jYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              <input type="hidden" name="invoice_date" id="invoiceDateHidden" value="{{ today_jalali }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">واحد پول *</label>
+              <select name="currency" id="currencySelect" class="erp-form-control" required>
+                {% for val, label in currency_choices %}
+                  <option value="{{ val }}" {% if val == default_currency %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Item -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-plus-circle"></i>
+            </span>
+            افزودن محصول
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="erp-label">محصول</label>
+              <select id="productSelect" class="erp-form-control">
+                <option value="">-- محصول --</option>
+                {% for p in products %}
+                  <option value="{{ p.pk }}"
+                          data-price="{{ p.sale_price }}"
+                          data-price-usd="{{ p.sale_price_usd }}"
+                          data-stock="{{ p.current_stock }}"
+                          data-unit="{{ p.unit.abbreviation|default:'' }}"
+                          data-name="{{ p.name }}">
+                    {{ p.name }} ({{ p.current_stock|floatformat:"-3" }} {{ p.unit.abbreviation }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="erp-label">مقدار</label>
+              <input type="number" id="itemQty" class="erp-form-control"
+                     step="0.001" min="0.001" placeholder="0" style="direction:ltr;">
+            </div>
+            <div class="col-md-2">
+              <label class="erp-label">قیمت (<span id="itemPriceUnit">{% if default_currency == 'USD' %}${% else %}؋{% endif %}</span>)</label>
+              <input type="number" id="itemPrice" class="erp-form-control"
+                     step="1" min="0" placeholder="0" style="direction:ltr;">
+            </div>
+            <div class="col-md-2">
+              <label class="erp-label">تخفیف %</label>
+              <input type="number" id="itemDiscount" class="erp-form-control"
+                     step="0.01" min="0" max="100" value="0" style="direction:ltr;">
+            </div>
+            <div class="col-md-2">
+              <button type="button" onclick="addItem()"
+                      class="btn-erp btn-erp-success w-100" style="padding:10px;">
+                <i class="bi bi-plus-lg"></i> افزودن
+              </button>
+            </div>
+          </div>
+
+          <!-- Stock info — shows backorder warning when qty > stock -->
+          <div id="stockInfo" class="mt-2" style="display:none;font-size:12px;">
+            <span style="color:var(--text-muted);">موجودی انبار: </span>
+            <strong id="stockQty" style="color:var(--accent-blue);">0</strong>
+            <span id="stockUnit" style="color:var(--text-muted);"></span>
+          </div>
+          <!-- Backorder notice — shown when selected product has zero/low stock -->
+          <div id="backorderNotice" class="mt-2 p-2 rounded" style="display:none;
+               background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);font-size:12px;">
+            <i class="bi bi-clock-history" style="color:var(--accent-orange);"></i>
+            <span style="color:var(--accent-orange);">
+              این محصول موجودی ندارد یا موجودی کافی نیست.
+              فروش ثبت می‌شود و کسری به عنوان <strong>سفارش معلق (Backorder)</strong>
+              ذخیره می‌شود — وقتی موجودی وارد انبار شود، به‌صورت خودکار کسر می‌گردد.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="erp-card">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+              <i class="bi bi-list-ol"></i>
+            </span>
+            ردیف‌های فاکتور
+          </h5>
+          <span id="itemCountBadge" class="erp-badge erp-badge-gray">۰ ردیف</span>
+        </div>
+        <div class="erp-card-body" style="padding:0;">
+          <div class="erp-table-wrapper">
+            <table class="erp-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>محصول</th>
+                  <th style="text-align:center;">مقدار</th>
+                  <th style="text-align:left;">قیمت واحد</th>
+                  <th style="text-align:center;">تخفیف</th>
+                  <th style="text-align:left;">مجموع</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="itemsTableBody">
+                <tr id="emptyRow">
+                  <td colspan="7">
+                    <div class="empty-state" style="padding:30px;">
+                      <i class="bi bi-cart-plus"></i>
+                      <h5 style="font-size:14px;">محصول اضافه کنید</h5>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="col-lg-4">
+      <div class="erp-card mb-4" style="position:sticky;top:80px;">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-calculator"></i>
+            </span>
+            خلاصه فاکتور
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div style="font-size:13px;">
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">جمع کل</span>
+              <strong id="summarySubtotal" style="direction:ltr;">0 {% if default_currency == 'USD' %}${% else %}؋{% endif %}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">تخفیف</span>
+              <strong id="summaryDiscount" style="direction:ltr;color:var(--accent-orange);">0 {% if default_currency == 'USD' %}${% else %}؋{% endif %}</strong>
+            </div>
+            <div class="divider" style="margin:10px 0;"></div>
+            <div class="d-flex justify-content-between mb-3">
+              <span style="font-weight:700;">مبلغ قابل پرداخت</span>
+              <strong id="summaryTotal" style="font-size:18px;direction:ltr;color:var(--accent-blue);">0 {% if default_currency == 'USD' %}${% else %}؋{% endif %}</strong>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">مبلغ پرداخت</label>
+            <input type="number" name="paid_amount" id="paidAmount"
+                   class="erp-form-control" style="direction:ltr;" min="0" step="1" value="0">
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">روش پرداخت</label>
+            <select name="payment_method" id="paymentMethodSelect" class="erp-form-control">
+              {% for val, label in payment_methods %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3" id="bankerSelectWrapper" style="display:none;">
+            <label class="erp-label">صراف *</label>
+            <select name="banker_id" id="bankerSelect" class="erp-form-control">
+              <option value="">-- صراف را انتخاب کنید --</option>
+              {% for b in bankers %}
+                <option value="{{ b.pk }}"
+                        data-balance-afn="{{ b.balance_afn }}"
+                        data-balance-usd="{{ b.balance_usd }}">
+                  {{ b.name }}
+                </option>
+              {% endfor %}
+            </select>
+            <div id="bankerBalanceInfo" class="mt-1" style="font-size:12px;color:var(--text-muted);"></div>
+          </div>
+
+          <!-- Remaining debt info (paid < total) -->
+          <div id="remainingInfo" class="mb-3 p-3 rounded"
+               style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);display:none;">
+            <div style="font-size:12px;color:var(--text-muted);">باقی‌مانده (نسیه)</div>
+            <div id="summaryRemaining"
+                 style="font-size:16px;font-weight:800;color:var(--accent-red);direction:ltr;">0 ؋</div>
+          </div>
+
+          <!-- Overpayment advance info (paid > total) -->
+          <div id="advanceInfo" class="mb-3 p-3 rounded"
+               style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.25);display:none;">
+            <div style="font-size:12px;color:var(--text-muted);">
+              <i class="bi bi-info-circle" style="color:var(--accent-green);"></i>
+              مبلغ اضافه به عنوان پیش‌پرداخت ثبت می‌شود
+            </div>
+            <div id="summaryAdvance"
+                 style="font-size:16px;font-weight:800;color:var(--accent-green);direction:ltr;">0 ؋</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">یادداشت</label>
+            <textarea name="notes" class="erp-form-control" rows="2" placeholder="اختیاری..."></textarea>
+          </div>
+
+          <button type="submit" id="submitInvoiceBtn" class="btn-erp btn-erp-primary w-100" style="padding:14px;font-size:15px;">
+            <i class="bi bi-check-circle"></i> ثبت فاکتور
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Delivery Choice Modal -->
+<div id="deliveryChoiceModal" style="display:none;position:fixed;inset:0;z-index:2000;
+     background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;max-width:420px;width:90%;
+              padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.2);">
+    <h5 style="margin-bottom:8px;">نحوه تحویل کالا</h5>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
+      آیا این فاکتور به عنوان «تحویل معلق» در انبار ثبت شود یا کالا همین الان تحویل داده می‌شود؟
+    </p>
+    <div style="display:flex;gap:10px;">
+      <button type="button" id="choosePendingBtn"
+              class="btn-erp btn-erp-primary w-100" style="padding:12px;">
+        <i class="bi bi-hourglass-split"></i> تحویل معلق
+      </button>
+      <button type="button" id="chooseExitBtn"
+              class="btn-erp btn-erp-success w-100" style="padding:12px;">
+        <i class="bi bi-box-arrow-right"></i> خروج (تحویل شد)
+      </button>
+    </div>
+    <button type="button" id="cancelDeliveryChoiceBtn"
+            class="btn-erp btn-erp-outline w-100 mt-2" style="padding:8px;">
+      انصراف
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let invoiceItems = [];
+let currentCustomer = { debt: 0, debt_usd: 0, credit_limit: 0, credit_limit_usd: 0 };
+
+function currencySymbol() {
+  return document.getElementById('currencySelect').value === 'USD' ? '$' : '؋';
+}
+
+document.getElementById('currencySelect').addEventListener('change', function() {
+  document.getElementById('itemPriceUnit').textContent = currencySymbol();
+  const productSel = document.getElementById('productSelect');
+  const opt = productSel.options[productSel.selectedIndex];
+  if (opt && opt.value) {
+    const price = this.value === 'USD'
+      ? (opt.dataset.priceUsd || 0)
+      : (opt.dataset.price || 0);
+    document.getElementById('itemPrice').value = price;
+  }
+  renderItems();
+  updateSummary();
+  updateBankerBalanceInfo();
+});
+
+// Customer info
+document.getElementById('customerSelect').addEventListener('change', function() {
+  const customerId = this.value;
+  if (!customerId) {
+    document.getElementById('customerDebtInfo').style.display = 'none';
+    currentCustomer = { debt: 0, debt_usd: 0, credit_limit: 0, credit_limit_usd: 0 };
+    checkCreditLimit();
+    return;
+  }
+  fetch(`/sales/api/customer-info/?customer_id=${customerId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        currentCustomer = {
+          debt: data.debt, debt_usd: data.debt_usd,
+          credit_limit: data.credit_limit, credit_limit_usd: data.credit_limit_usd,
+        };
+        if (data.debt > 0) {
+          document.getElementById('customerDebtAmount').textContent =
+            data.debt.toLocaleString('en-US', {minimumFractionDigits: 0});
+          document.getElementById('customerDebtInfo').style.display = 'block';
+        } else {
+          document.getElementById('customerDebtInfo').style.display = 'none';
+        }
+        checkCreditLimit();
+      } else {
+        document.getElementById('customerDebtInfo').style.display = 'none';
+      }
+    });
+});
+
+// Product select — auto-fill price by currency + show stock/backorder info
+document.getElementById('productSelect').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  if (!opt.value) {
+    document.getElementById('stockInfo').style.display = 'none';
+    document.getElementById('backorderNotice').style.display = 'none';
+    return;
+  }
+  const isusd = document.getElementById('currencySelect').value === 'USD';
+  const price = isusd ? (opt.dataset.priceUsd || 0) : (opt.dataset.price || 0);
+  const stock = parseFloat(opt.dataset.stock || 0);
+  const unit  = opt.dataset.unit || '';
+
+  document.getElementById('itemPrice').value = price;
+  document.getElementById('stockQty').textContent = stock.toLocaleString();
+  document.getElementById('stockUnit').textContent = ' ' + unit;
+  document.getElementById('stockInfo').style.display = 'block';
+
+  // Show backorder notice if stock is zero
+  document.getElementById('backorderNotice').style.display = stock <= 0 ? 'block' : 'none';
+
+  document.getElementById('itemQty').focus();
+});
+
+// Show backorder notice dynamically as qty is typed
+document.getElementById('itemQty').addEventListener('input', function() {
+  const productSel = document.getElementById('productSelect');
+  const opt = productSel.options[productSel.selectedIndex];
+  if (!opt || !opt.value) return;
+  const stock = parseFloat(opt.dataset.stock || 0);
+  const qty   = parseFloat(this.value) || 0;
+  document.getElementById('backorderNotice').style.display =
+    (qty > stock) ? 'block' : 'none';
+});
+
+function addItem() {
+  const productSel  = document.getElementById('productSelect');
+  const productId   = productSel.value;
+  const productName = productSel.options[productSel.selectedIndex]?.dataset?.name || '';
+  const unit        = productSel.options[productSel.selectedIndex]?.dataset?.unit || '';
+  const stock       = parseFloat(productSel.options[productSel.selectedIndex]?.dataset?.stock || 0);
+  const qty         = parseFloat(document.getElementById('itemQty').value);
+  const price       = parseFloat(document.getElementById('itemPrice').value);
+  const discount    = parseFloat(document.getElementById('itemDiscount').value) || 0;
+
+  if (!productId)          { alert('محصول را انتخاب کنید'); return; }
+  if (!qty || qty <= 0)    { alert('مقدار را وارد کنید'); return; }
+  if (price == null || price < 0) { alert('قیمت را وارد کنید'); return; }
+
+  // ── REMOVED: the old stock gate that blocked adding out-of-stock items.
+  // If qty > stock, the backend records the shortfall as a Backorder
+  // and fulfills it automatically when new stock arrives.
+  // We confirm with the user so they are aware, but do NOT block the sale.
+  if (qty > stock) {
+    const shortfall = qty - stock;
+    const confirmed = confirm(
+      `موجودی انبار: ${stock} ${unit}\n` +
+      `مقدار درخواستی: ${qty} ${unit}\n` +
+      `کسری: ${shortfall} ${unit}\n\n` +
+      `این مقدار به عنوان سفارش معلق (Backorder) ثبت می‌شود و وقتی موجودی وارد انبار شود به‌صورت خودکار کسر می‌گردد.\n\n` +
+      `آیا ادامه می‌دهید؟`
+    );
+    if (!confirmed) return;
+  }
+
+  const existing = invoiceItems.find(i => i.product_id === productId);
+  if (existing && !confirm('این محصول قبلاً اضافه شده. دوباره اضافه شود؟')) return;
+
+  const lineGross  = qty * price;
+  const lineDisc   = lineGross * discount / 100;
+  const lineNet    = lineGross - lineDisc;
+  const isBackorder = qty > stock;
+
+  invoiceItems.push({
+    product_id: productId, product_name: productName, unit,
+    quantity: qty, unit_price: price, discount_percent: discount,
+    line_total: lineNet,
+    is_backorder: isBackorder,   // used only for display badge in table
+    stock_available: stock,
+  });
+
+  renderItems();
+  updateSummary();
+
+  document.getElementById('productSelect').value = '';
+  document.getElementById('itemQty').value = '';
+  document.getElementById('itemPrice').value = '';
+  document.getElementById('itemDiscount').value = '0';
+  document.getElementById('stockInfo').style.display = 'none';
+  document.getElementById('backorderNotice').style.display = 'none';
+}
+
+function removeItem(index) {
+  invoiceItems.splice(index, 1);
+  renderItems();
+  updateSummary();
+}
+
+function renderItems() {
+  const tbody = document.getElementById('itemsTableBody');
+  const badge = document.getElementById('itemCountBadge');
+  const sym   = currencySymbol();
+
+  if (invoiceItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state" style="padding:30px;">
+      <i class="bi bi-cart-plus"></i><h5 style="font-size:14px;">محصول اضافه کنید</h5>
+    </div></td></tr>`;
+    badge.textContent = '۰ ردیف';
+    return;
+  }
+
+  badge.textContent = invoiceItems.length + ' ردیف';
+  tbody.innerHTML = invoiceItems.map((item, i) => {
+    // Backorder badge shown when qty exceeds available stock
+    const backorderBadge = item.is_backorder
+      ? `<div style="font-size:10px;margin-top:2px;">
+           <span style="background:rgba(245,158,11,.15);color:var(--accent-orange);
+                        padding:1px 5px;border-radius:4px;border:1px solid rgba(245,158,11,.3);">
+             <i class="bi bi-clock-history"></i>
+             سفارش معلق — کسری: ${(item.quantity - item.stock_available).toLocaleString()} ${item.unit}
+           </span>
+         </div>`
+      : '';
+    return `
+    <tr>
+      <td style="color:var(--text-muted);font-size:12px;">${i+1}</td>
+      <td>
+        <strong>${item.product_name}</strong>
+        <div style="font-size:11px;color:var(--text-muted);">${item.unit}</div>
+        ${backorderBadge}
+      </td>
+      <td style="text-align:center;font-weight:700;">${item.quantity.toLocaleString()}</td>
+      <td style="text-align:left;direction:ltr;">${item.unit_price.toLocaleString()} ${sym}</td>
+      <td style="text-align:center;">
+        ${item.discount_percent > 0
+          ? `<span class="erp-badge erp-badge-warning">${item.discount_percent}%</span>`
+          : '—'}
+      </td>
+      <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-blue);">
+        ${item.line_total.toLocaleString('en-US',{minimumFractionDigits:0})} ${sym}
+      </td>
+      <td><button type="button" onclick="removeItem(${i})"
+            class="btn-erp btn-erp-danger" style="padding:3px 8px;font-size:12px;">
+          <i class="bi bi-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateSummary() {
+  const sym = currencySymbol();
+  let subtotal = 0, discount = 0;
+  invoiceItems.forEach(item => {
+    const gross = item.quantity * item.unit_price;
+    subtotal += gross;
+    discount += gross * item.discount_percent / 100;
+  });
+  const total     = subtotal - discount;
+  const paid      = parseFloat(document.getElementById('paidAmount').value) || 0;
+  const remaining = Math.max(0, total - paid);
+  const advance   = Math.max(0, paid - total);
+
+  document.getElementById('summarySubtotal').textContent =
+    subtotal.toLocaleString('en-US',{minimumFractionDigits:0}) + ' ' + sym;
+  document.getElementById('summaryDiscount').textContent =
+    discount.toLocaleString('en-US',{minimumFractionDigits:0}) + ' ' + sym;
+  document.getElementById('summaryTotal').textContent =
+    total.toLocaleString('en-US',{minimumFractionDigits:0}) + ' ' + sym;
+
+  const remInfo = document.getElementById('remainingInfo');
+  if (remaining > 0) {
+    document.getElementById('summaryRemaining').textContent =
+      remaining.toLocaleString('en-US',{minimumFractionDigits:0}) + ' ' + sym;
+    remInfo.style.display = 'block';
+  } else {
+    remInfo.style.display = 'none';
+  }
+
+  const advInfo = document.getElementById('advanceInfo');
+  if (advance > 0) {
+    document.getElementById('summaryAdvance').textContent =
+      advance.toLocaleString('en-US',{minimumFractionDigits:0}) + ' ' + sym;
+    advInfo.style.display = 'block';
+  } else {
+    advInfo.style.display = 'none';
+  }
+
+  checkCreditLimit();
+}
+
+document.getElementById('paidAmount').addEventListener('input', updateSummary);
+
+function checkCreditLimit() {
+  const isUsd = document.getElementById('currencySelect').value === 'USD';
+  const currentDebt = isUsd ? currentCustomer.debt_usd : currentCustomer.debt;
+  const limit       = isUsd ? currentCustomer.credit_limit_usd : currentCustomer.credit_limit;
+
+  let subtotal = 0, discount = 0;
+  invoiceItems.forEach(item => {
+    const gross = item.quantity * item.unit_price;
+    subtotal += gross;
+    discount += gross * item.discount_percent / 100;
+  });
+  const total = subtotal - discount;
+  const paid  = parseFloat(document.getElementById('paidAmount').value) || 0;
+  const projected = currentDebt + total - paid;
+
+  const warningEl   = document.getElementById('creditLimitWarning');
+  const warningText = document.getElementById('creditLimitWarningText');
+  const submitBtn   = document.getElementById('submitInvoiceBtn');
+
+  if (limit > 0 && projected > limit) {
+    const sym = isUsd ? '$' : '؋';
+    warningText.textContent =
+      `این فروش از حد اعتبار مشتری بیشتر می‌شود! حد اعتبار: ${limit.toLocaleString('en-US')} ${sym} ` +
+      `— بدهی پس از این فروش: ${projected.toLocaleString('en-US')} ${sym}`;
+    warningEl.style.display = 'block';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
+  } else {
+    warningEl.style.display = 'none';
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.style.cursor = 'pointer';
+  }
+}
+
+// صراف toggle
+const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+const bankerSelectWrapper = document.getElementById('bankerSelectWrapper');
+const bankerSelect        = document.getElementById('bankerSelect');
+
+function toggleBankerField() {
+  if (paymentMethodSelect.value === 'saraf') {
+    bankerSelectWrapper.style.display = 'block';
+    bankerSelect.required = true;
+  } else {
+    bankerSelectWrapper.style.display = 'none';
+    bankerSelect.required = false;
+    bankerSelect.value = '';
+    document.getElementById('bankerBalanceInfo').textContent = '';
+  }
+}
+paymentMethodSelect.addEventListener('change', toggleBankerField);
+toggleBankerField();
+
+function updateBankerBalanceInfo() {
+  const opt    = bankerSelect.options[bankerSelect.selectedIndex];
+  const infoEl = document.getElementById('bankerBalanceInfo');
+  if (!opt || !opt.value) { infoEl.textContent = ''; return; }
+  const sym     = currencySymbol();
+  const balance = sym === '$'
+    ? parseFloat(opt.dataset.balanceUsd)
+    : parseFloat(opt.dataset.balanceAfn);
+  if (balance < 0) {
+    infoEl.style.color = 'var(--accent-red)';
+    infoEl.textContent = `بدهی ما به این صراف: ${Math.abs(balance).toLocaleString('en-US')} ${sym}`;
+  } else {
+    infoEl.style.color = 'var(--text-muted)';
+    infoEl.textContent = `مانده این صراف: ${balance.toLocaleString('en-US')} ${sym}`;
+  }
+}
+bankerSelect.addEventListener('change', updateBankerBalanceInfo);
+
+document.getElementById('itemQty').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); addItem(); }
+});
+document.getElementById('itemPrice').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); addItem(); }
+});
+
+// ── Delivery choice modal logic ──
+const submitInvoiceBtn    = document.getElementById('submitInvoiceBtn');
+const deliveryChoiceModal = document.getElementById('deliveryChoiceModal');
+const deliveryChoiceInput = document.getElementById('deliveryChoice');
+const invoiceFormEl       = document.getElementById('invoiceForm');
+
+submitInvoiceBtn.addEventListener('click', function(e) {
+  e.preventDefault();
+
+  if (invoiceItems.length === 0) {
+    alert('فاکتور باید حداقل یک ردیف داشته باشد.');
+    return;
+  }
+  if (document.getElementById('creditLimitWarning').style.display === 'block') {
+    alert('این فروش از حد اعتبار مشتری بیشتر است و قابل ثبت نیست.');
+    return;
+  }
+  if (paymentMethodSelect.value === 'saraf' && !bankerSelect.value) {
+    alert('برای پرداخت از طریق صراف، صراف را انتخاب کنید.');
+    return;
+  }
+
+  deliveryChoiceModal.style.display = 'flex';
+});
+
+document.getElementById('choosePendingBtn').addEventListener('click', function() {
+  deliveryChoiceInput.value = 'pending';
+  deliveryChoiceModal.style.display = 'none';
+  document.getElementById('itemsJson').value = JSON.stringify(invoiceItems);
+  invoiceFormEl.submit();
+});
+
+document.getElementById('chooseExitBtn').addEventListener('click', function() {
+  deliveryChoiceInput.value = 'exit';
+  deliveryChoiceModal.style.display = 'none';
+  document.getElementById('itemsJson').value = JSON.stringify(invoiceItems);
+  invoiceFormEl.submit();
+});
+
+document.getElementById('cancelDeliveryChoiceBtn').addEventListener('click', function() {
+  deliveryChoiceModal.style.display = 'none';
+});
+// ── Jalali date dropdown picker ──
+const JALALI_MONTHS = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeap(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const r = cycle % 128 === 0 ? 0 : 1 + ((cycle % 128 - 1) % 4 !== undefined ? 0 : 0);
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLength(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeap(year) ? 30 : 29;
+}
+
+function setupJalaliPicker(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  // Year dropdown: wide range centered on the ACTUAL current Jalali year
+  // (from the server, never hardcoded), extended to include whatever
+  // value is already set so nothing saved ever becomes unselectable.
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  // Month dropdown
+  monthSel.innerHTML = '';
+  JALALI_MONTHS.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLength(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupJalaliPicker('invoiceDateHidden', 'jDay', 'jMonth', 'jYear');
+
+// ── Warehouse-scoped stock ──
+// Refreshes each product option's data-stock + visible label to reflect
+// only the currently selected warehouse's stock. Products with no batches
+// in that warehouse fall back to 0 (missing from the returned map).
+function updateWarehouseStock() {
+  const warehouseId = document.getElementById('warehouseSelect').value;
+  if (!warehouseId) return;
+
+  fetch(`/sales/api/warehouse-stock/?warehouse_id=${warehouseId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) return;
+      const stockMap  = data.stock || {};
+      const productSel = document.getElementById('productSelect');
+
+      Array.from(productSel.options).forEach(opt => {
+        if (!opt.value) return;
+        const stock = stockMap[opt.value] || 0;
+        opt.dataset.stock = stock;
+        const name = opt.dataset.name || '';
+        const unit = opt.dataset.unit || '';
+        opt.textContent = `${name} (${stock.toLocaleString('en-US', {maximumFractionDigits: 3})} ${unit})`;
+      });
+
+      // If a product is already selected, refresh the visible stock/backorder info too
+      const selectedOpt = productSel.options[productSel.selectedIndex];
+      if (selectedOpt && selectedOpt.value) {
+        const stock = parseFloat(selectedOpt.dataset.stock || 0);
+        document.getElementById('stockQty').textContent = stock.toLocaleString();
+        document.getElementById('backorderNotice').style.display = stock <= 0 ? 'block' : 'none';
+      }
+    });
+}
+
+document.getElementById('warehouseSelect').addEventListener('change', updateWarehouseStock);
+updateWarehouseStock(); // apply immediately for the pre-selected default warehouse
+</script>
+{% endblock %}

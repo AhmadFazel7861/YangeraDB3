@@ -1,0 +1,589 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ warehouse.name }}{% endblock %}
+{% block page_title %}{{ warehouse.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-building"></i></span>
+    {{ warehouse.name }}
+    {% if warehouse.is_default %}
+      <span class="erp-badge erp-badge-info">پیشفرض</span>
+    {% endif %}
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'warehouse:delivery_history' warehouse.pk %}"
+       class="btn-erp btn-erp-outline">
+      <i class="bi bi-clock-history"></i> تاریخچه تحویل
+    </a>
+    <a href="{% url 'warehouse:stock_receive' %}?warehouse={{ warehouse.pk }}"
+       class="btn-erp btn-erp-success">
+      <i class="bi bi-box-arrow-in-down"></i> دریافت موجودی
+    </a>
+    <a href="{% url 'warehouse:warehouse_edit' warehouse.pk %}"
+       class="btn-erp btn-erp-outline">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="stats-grid mb-4">
+
+  <!-- Total batches -->
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بچ‌های فعال</div>
+        <div class="stat-value">{{ valuation.total_batches_all }}</div>
+        <div class="stat-sub">بچ موجود</div>
+      </div>
+      <div class="stat-card-icon accent-blue"><i class="bi bi-stack"></i></div>
+    </div>
+  </div>
+
+  <!-- AFN value -->
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش موجودی (افغانی)</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ valuation.total_value|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋ — {{ valuation.total_batches }} بچ</div>
+      </div>
+      <div class="stat-card-icon accent-green"><i class="bi bi-cash-stack"></i></div>
+    </div>
+  </div>
+
+  <!-- USD value — only shown if any USD batches exist -->
+  {% if valuation.total_value_usd %}
+  <div class="stat-card" style="border-color:rgba(245,158,11,.3);">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش موجودی (دالر)</div>
+        <div class="stat-value" style="font-size:18px;color:var(--accent-orange);">
+          {{ valuation.total_value_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $ — {{ valuation.total_batches_usd }} بچ</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Pending delivery -->
+  <div class="stat-card" style="border-color:rgba(139,92,246,.3);">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">در انتظار تحویل</div>
+        <div class="stat-value" style="color:var(--accent-purple);">
+          {{ pending_count }}
+        </div>
+        <div class="stat-sub">ردیف معلق</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(139,92,246,.12);color:var(--accent-purple);">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total units -->
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع واحدها</div>
+        <div class="stat-value">
+          {{ valuation.total_units_all|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">واحد</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(139,92,246,.12);color:var(--accent-purple);">
+        <i class="bi bi-boxes"></i>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabs -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:0;">
+    <div style="display:flex;border-bottom:1px solid var(--border-color);">
+      <a href="?tab=stock{% if search %}&q={{ search }}{% endif %}"
+         style="padding:14px 24px;font-weight:600;font-size:14px;text-decoration:none;
+                border-bottom:3px solid {% if tab == 'stock' %}var(--accent-blue){% else %}transparent{% endif %};
+                color:{% if tab == 'stock' %}var(--accent-blue){% else %}var(--text-muted){% endif %};">
+        <i class="bi bi-stack me-1"></i> موجودی انبار
+        <span class="erp-badge erp-badge-gray ms-1">{{ total }}</span>
+      </a>
+      <a href="?tab=pending{% if search %}&q={{ search }}{% endif %}"
+         style="padding:14px 24px;font-weight:600;font-size:14px;text-decoration:none;
+                border-bottom:3px solid {% if tab == 'pending' %}var(--accent-purple){% else %}transparent{% endif %};
+                color:{% if tab == 'pending' %}var(--accent-purple){% else %}var(--text-muted){% endif %};">
+        <i class="bi bi-hourglass-split me-1"></i> تحویل معلق
+        {% if pending_count %}
+          <span class="erp-badge ms-1"
+                style="background:rgba(139,92,246,.15);color:var(--accent-purple);">
+            {{ pending_count }}
+          </span>
+        {% endif %}
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex gap-3 align-items-center">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <div style="flex:1;position:relative;">
+        <i class="bi bi-search"
+           style="position:absolute;right:12px;top:50%;
+                  transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}"
+               class="erp-form-control" style="padding-right:38px;"
+               placeholder="{% if tab == 'stock' %}جستجوی محصول یا شماره بچ...{% else %}جستجوی مشتری، محصول یا شماره فاکتور...{% endif %}">
+      </div>
+      <button type="submit" class="btn-erp btn-erp-primary">جستجو</button>
+      {% if search %}
+        <a href="?tab={{ tab }}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+
+<!-- ══ TAB: STOCK BATCHES ══ -->
+{% if tab == 'stock' %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-stack"></i>
+      </span>
+      بچ‌های موجودی
+      <span class="erp-badge erp-badge-gray">{{ total }}</span>
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>شماره بچ</th>
+            <th>محصول</th>
+            <th>دسته‌بندی</th>
+            <th style="text-align:center;">مقدار اولیه</th>
+            <th style="text-align:center;">مقدار باقی</th>
+            <th style="text-align:left;">قیمت خرید (؋)</th>
+            <th style="text-align:left;">قیمت خرید ($)</th>
+            <th style="text-align:left;">ارزش کل</th>
+            <th>انقضا</th>
+            <th>تاریخ ورود</th>
+            <th style="text-align:center;">عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for batch in batches %}
+          <tr {% if batch.is_expired %}style="background:rgba(239,68,68,.04);"
+              {% elif batch.is_expiring_soon %}style="background:rgba(245,158,11,.04);"
+              {% endif %}>
+            <td>
+              <span style="font-family:monospace;font-size:12px;
+                           color:var(--text-muted);">
+                {{ batch.batch_number }}
+              </span>
+            </td>
+            <td>
+              <strong>{{ batch.product.name }}</strong>
+              <div style="font-size:11px;color:var(--text-muted);">
+                {{ batch.product.code }}
+              </div>
+            </td>
+            <td>
+              {% if batch.product.category %}
+                <span class="erp-badge erp-badge-info">
+                  {{ batch.product.category.name }}
+                </span>
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:center;">
+              {{ batch.initial_quantity|floatformat:"-3" }}
+              <span style="font-size:11px;color:var(--text-muted);">
+                {{ batch.product.unit.abbreviation }}
+              </span>
+            </td>
+            <td style="text-align:center;font-weight:700;">
+              {{ batch.remaining_quantity|floatformat:"-3" }}
+              <span style="font-size:11px;color:var(--text-muted);">
+                {{ batch.product.unit.abbreviation }}
+              </span>
+            </td>
+
+            <!-- AFN purchase price -->
+            <td style="text-align:left;direction:ltr;">
+              {% if batch.unit_cost %}
+                <span style="font-weight:600;">
+                  {{ batch.unit_cost|floatformat:2|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> ؋</span>
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+
+            <!-- USD purchase price -->
+            <td style="text-align:left;direction:ltr;">
+              {% if batch.unit_cost_usd %}
+                <span style="font-weight:600;color:var(--accent-orange);">
+                  {{ batch.unit_cost_usd|floatformat:4|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> $</span>
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Total value — show in correct currency -->
+            <td style="text-align:left;direction:ltr;">
+              {% if batch.unit_cost_usd %}
+                <span style="font-weight:700;color:var(--accent-orange);">
+                  {{ batch.total_cost_usd|floatformat:2|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> $</span>
+                <div style="font-size:11px;color:var(--text-muted);">
+                  ≈ {{ batch.total_cost|floatformat:0|intcomma }} ؋
+                </div>
+              {% else %}
+                <span style="font-weight:700;color:var(--accent-green);">
+                  {{ batch.total_cost|floatformat:0|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> ؋</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if batch.expiry_date %}
+                {% if batch.is_expired %}
+                  <span class="erp-badge erp-badge-danger">
+                    <i class="bi bi-x-circle-fill" style="font-size:9px;"></i>
+                    منقضی
+                  </span>
+                {% elif batch.is_expiring_soon %}
+                  <span class="erp-badge erp-badge-warning">
+                    <i class="bi bi-exclamation-triangle-fill"
+                       style="font-size:9px;"></i>
+                    {{ batch.days_until_expiry }} روز
+                  </span>
+                {% else %}
+                  <span style="font-size:12px;">{{ batch.expiry_date }}</span>
+                {% endif %}
+              {% else %}
+                <span style="color:var(--text-muted);">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);white-space:nowrap;">
+              {{ batch.created_at|date:"Y/m/d" }}
+            </td>
+
+            <!-- ── Edit / Delete buttons ── -->
+            <td style="text-align:center;white-space:nowrap;">
+              <a href="{% url 'warehouse:batch_edit' batch.pk %}"
+                 class="btn-erp btn-erp-outline"
+                 style="padding:4px 10px;font-size:12px;">
+                <i class="bi bi-pencil"></i> ویرایش
+              </a>
+              <button type="button"
+                      onclick="confirmBatchDelete(
+                        '{{ batch.pk }}',
+                        '{{ batch.batch_number }}',
+                        '{{ batch.remaining_quantity|floatformat:"-3" }}'
+                      )"
+                      class="btn-erp btn-erp-danger"
+                      style="padding:4px 10px;font-size:12px;margin-right:4px;">
+                <i class="bi bi-trash"></i> حذف
+              </button>
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="11">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h5>موجودی در این انبار ثبت نشده</h5>
+                <a href="{% url 'warehouse:stock_receive' %}"
+                   class="btn-erp btn-erp-primary mt-2">
+                  دریافت موجودی
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+        <!-- Footer totals -->
+        {% if valuation.total_value or valuation.total_value_usd %}
+        <tfoot>
+          {% if valuation.total_value %}
+          <tr style="background:var(--table-header);font-weight:700;">
+            <td colspan="8" style="padding:12px 16px;">مجموع (افغانی)</td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       font-size:15px;color:var(--accent-green);">
+              {{ valuation.total_value|floatformat:0|intcomma }} ؋
+            </td>
+            <td colspan="2"></td>
+          </tr>
+          {% endif %}
+          {% if valuation.total_value_usd %}
+          <tr style="background:var(--table-header);font-weight:700;">
+            <td colspan="8" style="padding:12px 16px;">مجموع (دالر)</td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       font-size:15px;color:var(--accent-orange);">
+              {{ valuation.total_value_usd|floatformat:2|intcomma }} $
+            </td>
+            <td colspan="2"></td>
+          </tr>
+          {% endif %}
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ══ TAB: PENDING DELIVERIES ══ -->
+{% if tab == 'pending' %}
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+        <i class="bi bi-hourglass-split"></i>
+      </span>
+      تحویل‌های معلق
+      <span class="erp-badge ms-1"
+            style="background:rgba(139,92,246,.15);color:var(--accent-purple);">
+        {{ pending_total }}
+      </span>
+    </h5>
+    <a href="{% url 'warehouse:delivery_history' warehouse.pk %}"
+       class="btn-erp btn-erp-outline" style="font-size:12px;padding:6px 12px;">
+      <i class="bi bi-clock-history"></i> تاریخچه
+    </a>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>مشتری</th>
+            <th>محصول</th>
+            <th style="text-align:center;">مقدار</th>
+            <th>فاکتور</th>
+            <th>تاریخ فاکتور</th>
+            <th style="text-align:center;">عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for delivery in pending_deliveries %}
+          <tr>
+            <td>
+              <strong style="color:var(--accent-blue);">
+                {{ delivery.customer.name }}
+              </strong>
+              {% if delivery.customer.phone %}
+                <div style="font-size:11px;color:var(--text-muted);">
+                  {{ delivery.customer.phone }}
+                </div>
+              {% endif %}
+            </td>
+            <td><strong>{{ delivery.product.name }}</strong></td>
+            <td style="text-align:center;font-weight:700;font-size:15px;">
+              {{ delivery.quantity|floatformat:"-3" }}
+              <span style="font-size:11px;color:var(--text-muted);">
+                {{ delivery.product.unit.abbreviation }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'sales:invoice_detail' delivery.invoice.pk %}"
+                 style="font-family:monospace;font-size:12px;
+                        color:var(--accent-blue);">
+                {{ delivery.invoice.invoice_number }}
+              </a>
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ delivery.invoice_date|date:"Y/m/d" }}
+            </td>
+            <td style="text-align:center;">
+              <button type="button"
+                      onclick="confirmExit(
+                        '{{ delivery.pk }}',
+                        '{{ delivery.customer.name }}',
+                        '{{ delivery.product.name }}',
+                        '{{ delivery.quantity|floatformat:"-3" }}'
+                      )"
+                      class="btn-erp btn-erp-success"
+                      style="padding:5px 14px;font-size:13px;">
+                <i class="bi bi-box-arrow-right"></i> خروج
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="bi bi-check-circle"
+                   style="color:var(--accent-green);"></i>
+                <h5>هیچ کالایی در انتظار تحویل نیست</h5>
+                <p style="color:var(--text-muted);font-size:13px;">
+                  تمام کالاها تحویل داده شده‌اند.
+                </p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if pending_deliveries.has_other_pages %}
+<div class="d-flex justify-content-center mt-3">
+  {% if pending_deliveries.has_previous %}
+    <a href="?tab=pending&ppage={{ pending_deliveries.previous_page_number }}{% if search %}&q={{ search }}{% endif %}"
+       class="btn-erp btn-erp-outline me-2">قبلی</a>
+  {% endif %}
+  <span style="padding:8px 16px;color:var(--text-muted);">
+    {{ pending_deliveries.number }} / {{ pending_deliveries.paginator.num_pages }}
+  </span>
+  {% if pending_deliveries.has_next %}
+    <a href="?tab=pending&ppage={{ pending_deliveries.next_page_number }}{% if search %}&q={{ search }}{% endif %}"
+       class="btn-erp btn-erp-outline ms-2">بعدی</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+
+<!-- ══ Exit Confirm Modal (unchanged) ══ -->
+<div id="exitModal"
+     style="display:none;position:fixed;inset:0;z-index:9999;
+            background:rgba(0,0,0,.5);align-items:center;
+            justify-content:center;">
+  <div style="background:var(--card-bg);border-radius:12px;padding:28px;
+              width:420px;max-width:90vw;
+              box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <h5 style="margin:0 0 8px;font-size:16px;">
+      <i class="bi bi-box-arrow-right"
+         style="color:var(--accent-green);"></i>
+      تأیید خروج کالا
+    </h5>
+    <p id="exitModalText"
+       style="color:var(--text-muted);font-size:14px;
+              margin:12px 0 16px;"></p>
+    <div class="mb-3">
+      <label class="erp-label">یادداشت (اختیاری)</label>
+      <input type="text" id="exitNotes" class="erp-form-control"
+             placeholder="در صورت نیاز یادداشت بنویسید...">
+    </div>
+    <div class="d-flex gap-2 justify-content-end">
+      <button type="button" onclick="closeExitModal()"
+              class="btn-erp btn-erp-outline">انصراف</button>
+      <form id="exitForm" method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="notes" id="exitFormNotes">
+        <button type="submit" class="btn-erp btn-erp-success">
+          <i class="bi bi-check-lg"></i> تأیید خروج
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Batch Delete Confirm Modal ══ -->
+<div id="batchDeleteModal"
+     style="display:none;position:fixed;inset:0;z-index:9999;
+            background:rgba(0,0,0,.5);align-items:center;
+            justify-content:center;">
+  <div style="background:var(--card-bg);border-radius:12px;padding:28px;
+              width:420px;max-width:90vw;
+              box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <h5 style="margin:0 0 8px;font-size:16px;color:var(--danger);">
+      <i class="bi bi-trash"></i> حذف بچ موجودی
+    </h5>
+    <p id="batchDeleteText"
+       style="color:var(--text-muted);font-size:14px;
+              margin:12px 0 20px;"></p>
+    <div class="d-flex gap-2 justify-content-end">
+      <button type="button" onclick="closeBatchDeleteModal()"
+              class="btn-erp btn-erp-outline">انصراف</button>
+      <form id="batchDeleteForm" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-erp btn-erp-danger">
+          <i class="bi bi-trash"></i> بله، حذف شود
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Exit modal (unchanged) ── */
+function confirmExit(deliveryPk, customerName, productName, qty) {
+  document.getElementById('exitModalText').textContent =
+    'آیا از خروج ' + qty + ' واحد «' + productName +
+    '» برای مشتری «' + customerName + '» اطمینان دارید؟';
+  document.getElementById('exitForm').action =
+    '/warehouse/delivery/' + deliveryPk + '/exit/';
+  document.getElementById('exitNotes').value = '';
+  document.getElementById('exitModal').style.display = 'flex';
+}
+
+function closeExitModal() {
+  document.getElementById('exitModal').style.display = 'none';
+}
+
+document.getElementById('exitForm').addEventListener('submit', function() {
+  document.getElementById('exitFormNotes').value =
+    document.getElementById('exitNotes').value;
+});
+
+document.getElementById('exitModal').addEventListener('click', function(e) {
+  if (e.target === this) closeExitModal();
+});
+
+/* ── Batch delete modal ── */
+function confirmBatchDelete(pk, batchNum, qty) {
+  document.getElementById('batchDeleteText').textContent =
+    'آیا از حذف بچ «' + batchNum + '» با مقدار ' + qty +
+    ' واحد اطمینان دارید؟ این عمل برگشت‌پذیر نیست.';
+  document.getElementById('batchDeleteForm').action =
+    '/warehouse/batch/' + pk + '/delete/';
+  document.getElementById('batchDeleteModal').style.display = 'flex';
+}
+
+function closeBatchDeleteModal() {
+  document.getElementById('batchDeleteModal').style.display = 'none';
+}
+
+document.getElementById('batchDeleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBatchDeleteModal();
+});
+</script>
+{% endblock %}

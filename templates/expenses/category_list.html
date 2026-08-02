@@ -1,0 +1,81 @@
+﻿{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}دسته‌بندی مصارف{% endblock %}
+{% block page_title %}دسته‌بندی مصارف{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-tags"></i></span>
+    دسته‌بندی مصارف
+  </h1>
+  <a href="{% url 'expenses:category_create' %}" class="btn-erp btn-erp-primary">
+    <i class="bi bi-plus-circle"></i> دسته‌بندی جدید
+  </a>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+<table class="erp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>نام دسته‌بندی</th>
+          <th style="text-align:center;">تعداد مصارف</th>
+          <th style="text-align:left;">مجموع مبلغ</th>
+          <th style="text-align:center;">وضعیت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;">
+            {{ forloop.counter }}
+          </td>
+          <td><strong>{{ cat.name }}</strong></td>
+          <td style="text-align:center;">
+            <span class="erp-badge erp-badge-info">
+              {{ cat.expense_count }}
+            </span>
+          </td>
+          <td style="text-align:left;direction:ltr;font-weight:700;
+                     color:var(--accent-red);">
+            {{ cat.total_amount|default:0|floatformat:0|intcomma }} ؋
+          </td>
+          <td style="text-align:center;">
+            {% if cat.is_active %}
+              <span class="erp-badge erp-badge-success">فعال</span>
+            {% else %}
+              <span class="erp-badge erp-badge-gray">غیرفعال</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'expenses:category_edit' cat.pk %}"
+               class="btn-erp btn-erp-outline"
+               style="padding:4px 10px;font-size:12px;">
+              <i class="bi bi-pencil"></i> ویرایش
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <i class="bi bi-tags"></i>
+              <h5>هیچ دسته‌بندی‌ای ثبت نشده</h5>
+              <a href="{% url 'expenses:category_create' %}"
+                 class="btn-erp btn-erp-primary mt-2">
+                اولین دسته‌بندی را ثبت کنید
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+  </div>
+</div>
+{% endblock %}

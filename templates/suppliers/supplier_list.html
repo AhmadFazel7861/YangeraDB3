@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}تامین‌کنندگان{% endblock %}
+{% block page_title %}تامین‌کنندگان{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-person-workspace"></i></span>
+    تامین‌کنندگان
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">{{ total }}</span>
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'suppliers:supplier_debts' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-exclamation-triangle"></i> بدهی‌های ما
+    </a>
+    <a href="{% url 'suppliers:supplier_create' %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-person-plus"></i> تامین‌کننده جدید
+    </a>
+  </div>
+</div>
+
+{% if total_debt > 0 %}
+<div class="erp-alert erp-alert-warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  مجموع بدهی ما به تامین‌کنندگان:
+  <strong style="direction:ltr;display:inline-block;">
+    {{ total_debt|floatformat:0|intcomma }} افغانی
+  </strong>
+</div>
+{% endif %}
+
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex gap-3 align-items-center">
+      <div style="flex:1;position:relative;">
+        <i class="bi bi-search"
+           style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}" class="erp-form-control"
+               style="padding-right:38px;" placeholder="نام، تلفن، کد...">
+      </div>
+      <button type="submit" class="btn-erp btn-erp-primary">جستجو</button>
+      {% if search %}
+        <a href="{% url 'suppliers:supplier_list' %}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>نام تامین‌کننده</th>
+            <th>تلفن</th>
+            <th>شرکت</th>
+            <th style="text-align:left;">بدهی ما (افغانی)</th>
+            <th style="text-align:left;">بدهی ما (دالر)</th>
+            <th style="text-align:left;">پیش‌پرداخت (افغانی)</th>
+            <th style="text-align:left;">پیش‌پرداخت (دالر)</th>
+            <th style="text-align:center;">وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sup in suppliers %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:12px;">{{ forloop.counter }}</td>
+            <td>
+              <a href="{% url 'suppliers:supplier_detail' sup.pk %}"
+                 style="font-weight:700;color:var(--text-primary);text-decoration:none;">
+                {{ sup.name }}
+              </a>
+              <div style="font-size:11px;color:var(--text-muted);">{{ sup.code }}</div>
+            </td>
+            <td style="direction:ltr;font-size:13px;">{{ sup.phone|default:"—" }}</td>
+            <td style="font-size:13px;color:var(--text-muted);">
+              {{ sup.company|default:"—" }}
+            </td>
+
+            <!-- AFN debt -->
+            <td style="text-align:left;">
+              {% if sup.total_debt > 0 %}
+                <span style="color:var(--accent-red);font-weight:700;direction:ltr;">
+                  {{ sup.total_debt|floatformat:0|intcomma }} ؋
+                </span>
+              {% else %}—{% endif %}
+            </td>
+
+            <!-- USD debt -->
+            <td style="text-align:left;">
+              {% if sup.total_debt_usd > 0 %}
+                <span style="color:var(--accent-red);font-weight:700;direction:ltr;">
+                  {{ sup.total_debt_usd|floatformat:2|intcomma }} $
+                </span>
+              {% else %}—{% endif %}
+            </td>
+
+            <!-- Advance balance (AFN) -->
+            <td style="text-align:left;">
+              {% if sup.advance_balance > 0 %}
+                <span style="color:var(--accent-green);font-weight:600;direction:ltr;">
+                  {{ sup.advance_balance|floatformat:0|intcomma }} ؋
+                </span>
+              {% else %}—{% endif %}
+            </td>
+
+            <!-- Advance balance (USD) -->
+            <td style="text-align:left;">
+              {% if sup.advance_balance_usd > 0 %}
+                <span style="color:var(--accent-green);font-weight:600;direction:ltr;">
+                  {{ sup.advance_balance_usd|floatformat:2|intcomma }} $
+                </span>
+              {% else %}—{% endif %}
+            </td>
+
+            <td style="text-align:center;">
+              {% if sup.is_active %}
+                <span class="erp-badge erp-badge-success">فعال</span>
+              {% else %}
+                <span class="erp-badge erp-badge-gray">غیرفعال</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'suppliers:supplier_detail' sup.pk %}"
+                   class="btn-erp btn-erp-outline" style="padding:4px 10px;font-size:12px;">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'suppliers:supplier_statement' sup.pk %}"
+                   class="btn-erp btn-erp-outline" style="padding:4px 10px;font-size:12px;">
+                  <i class="bi bi-journal-text"></i>
+                </a>
+                <a href="{% url 'suppliers:supplier_edit' sup.pk %}"
+                   class="btn-erp btn-erp-outline" style="padding:4px 10px;font-size:12px;">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="post" action="{% url 'suppliers:supplier_delete' sup.pk %}"
+                      style="display:inline;"
+                      onsubmit="return confirm('آیا از حذف تامین‌کننده «{{ sup.name }}» مطمئن هستید؟');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-erp btn-erp-outline"
+                          style="padding:4px 10px;font-size:12px;color:var(--accent-red);border-color:var(--accent-red);">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10">
+              <div class="empty-state">
+                <i class="bi bi-person-workspace"></i>
+                <h5>هیچ تامین‌کننده‌ای یافت نشد</h5>
+                <a href="{% url 'suppliers:supplier_create' %}"
+                   class="btn-erp btn-erp-primary mt-2">
+                  اولین تامین‌کننده را ثبت کنید
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

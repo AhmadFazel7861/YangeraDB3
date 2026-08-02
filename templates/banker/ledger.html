@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}دفتر — {{ banker.name }}{% endblock %}
+{% block page_title %}دفتر صراف{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-journal-text"></i></span>
+    دفتر صراف — {{ banker.name }}
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'banker:ledger_print' banker.pk %}{% if date_from or date_to %}?date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+       target="_blank"
+       class="btn-erp btn-erp-outline no-print">
+      <i class="bi bi-printer"></i> پرینت
+    </a>
+    <a href="{% url 'banker:banker_detail' banker.pk %}"
+       class="btn-erp btn-erp-outline no-print">
+      <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+  </div>
+</div>
+
+<!-- Date Filter -->
+<div class="erp-card mb-4 no-print">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label class="erp-label" style="font-size:12px;">از تاریخ</label>
+        <div class="d-flex gap-1" dir="ltr">
+          <select id="fromDay" class="erp-form-control" style="width:58px;padding:6px 2px;"></select>
+          <select id="fromMonth" class="erp-form-control" style="width:75px;padding:6px 2px;"></select>
+          <select id="fromYear" class="erp-form-control" style="width:70px;padding:6px 2px;"></select>
+        </div>
+        <input type="hidden" name="date_from" id="dateFromHidden" value="{{ date_from }}">
+      </div>
+      <div>
+        <label class="erp-label" style="font-size:12px;">تا تاریخ</label>
+        <div class="d-flex gap-1" dir="ltr">
+          <select id="toDay" class="erp-form-control" style="width:58px;padding:6px 2px;"></select>
+          <select id="toMonth" class="erp-form-control" style="width:75px;padding:6px 2px;"></select>
+          <select id="toYear" class="erp-form-control" style="width:70px;padding:6px 2px;"></select>
+        </div>
+        <input type="hidden" name="date_to" id="dateToHidden" value="{{ date_to }}">
+      </div>
+      <button type="submit" class="btn-erp btn-erp-primary">اعمال</button>
+      {% if date_from or date_to %}
+        <a href="{% url 'banker:ledger' banker.pk %}"
+           class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع داده شده (AFN)</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ total_debit_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-arrow-up-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع دریافت شده (AFN)</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ total_credit_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-arrow-down-circle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده AFN</div>
+        <div class="stat-value" style="font-size:18px;
+          color:{% if banker.balance_afn > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ banker.balance_afn|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(59,130,246,.12);color:var(--accent-blue);">
+        <i class="bi bi-wallet2"></i>
+      </div>
+    </div>
+  </div>
+  {% if total_debit_usd or total_credit_usd %}
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده USD</div>
+        <div class="stat-value" style="font-size:18px;direction:ltr;
+          color:{% if banker.balance_usd > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+          {{ banker.balance_usd|floatformat:4 }}
+        </div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(16,185,129,.12);color:var(--accent-green);">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Ledger Table -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-table"></i>
+      </span>
+      دفتر تراکنش‌ها
+      <span class="erp-badge erp-badge-gray">
+        {{ entries|length }} ردیف
+      </span>
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>نوع</th>
+            <th style="text-align:left;">بدهکار AFN</th>
+            <th style="text-align:left;">بستانکار AFN</th>
+            <th style="text-align:left;">بدهکار USD</th>
+            <th style="text-align:left;">بستانکار USD</th>
+            <th style="text-align:left;">مانده</th>
+            <th>نرخ</th>
+            <th>مرجع</th>
+            <th>یادداشت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries %}
+          <tr>
+            <td style="font-size:12px;white-space:nowrap;font-weight:600;">
+              {{ entry.tx.transaction_date|jalali }}
+            </td>
+            <td>
+              {% if entry.tx.tx_type == 'given' %}
+                <span class="erp-badge erp-badge-danger">▲</span>
+              {% else %}
+                <span class="erp-badge erp-badge-success">▼</span>
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;color:var(--accent-red);font-weight:600;">
+              {% if entry.debit_afn > 0 %}
+                {{ entry.debit_afn|floatformat:0|intcomma }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;color:var(--accent-green);font-weight:600;">
+              {% if entry.credit_afn > 0 %}
+                {{ entry.credit_afn|floatformat:0|intcomma }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;color:var(--accent-red);font-size:12px;">
+              {% if entry.debit_usd > 0 %}
+                {{ entry.debit_usd|floatformat:4 }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;color:var(--accent-green);font-size:12px;">
+              {% if entry.credit_usd > 0 %}
+                {{ entry.credit_usd|floatformat:4 }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:700;font-size:12px;">
+              {% if entry.tx.currency == 'AFN' %}
+                <span style="
+                  color:{% if entry.running_afn > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+                  {{ entry.running_afn|floatformat:0|intcomma }} ؋
+                </span>
+              {% else %}
+                <span style="
+                  color:{% if entry.running_usd > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+                  {{ entry.running_usd|floatformat:4 }} $
+                </span>
+              {% endif %}
+            </td>
+            <td style="font-size:11px;direction:ltr;color:var(--text-muted);">
+              {% if entry.tx.currency == 'USD' %}
+                {{ entry.tx.exchange_rate|floatformat:4 }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="font-size:11px;color:var(--text-muted);">
+              {{ entry.tx.reference|default:"—" }}
+            </td>
+            <td style="font-size:11px;color:var(--text-muted);">
+              {{ entry.tx.notes|default:"—"|truncatechars:25 }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10">
+              <div class="empty-state">
+                <i class="bi bi-journal"></i>
+                <h5>هیچ تراکنشی یافت نشد</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if entries %}
+        <tfoot>
+          <tr style="background:var(--table-header);font-weight:800;">
+            <td colspan="2" style="padding:12px 16px;">مجموع</td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       color:var(--accent-red);">
+              {{ total_debit_afn|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       color:var(--accent-green);">
+              {{ total_credit_afn|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       color:var(--accent-red);font-size:12px;">
+              {{ total_debit_usd|floatformat:4 }}
+            </td>
+            <td style="padding:12px 16px;text-align:left;direction:ltr;
+                       color:var(--accent-green);font-size:12px;">
+              {{ total_credit_usd|floatformat:4 }}
+            </td>
+            <td colspan="4" style="padding:12px 16px;">
+              مانده نهایی:
+              <span style="direction:ltr;
+                color:{% if banker.balance_afn > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+                {{ banker.balance_afn|floatformat:0|intcomma }} ؋
+              </span>
+              {% if banker.balance_usd != 0 %}
+              |
+              <span style="direction:ltr;
+                color:{% if banker.balance_usd > 0 %}var(--accent-red){% else %}var(--accent-green){% endif %};">
+                {{ banker.balance_usd|floatformat:4 }} $
+              </span>
+              {% endif %}
+            </td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Optional Jalali dropdown filter (day/month/year, blank = no filter) ──
+const JALALI_MONTHS_LEDGER = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function setupOptionalJalaliPickerLedger(hiddenId, dayId, monthId, yearId) {
+  const hidden   = document.getElementById(hiddenId);
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parts.length === 3 ? parseInt(parts[0]) : '';
+  const initMonth = parts.length === 3 ? parseInt(parts[1]) : '';
+  const initDay   = parts.length === 3 ? parseInt(parts[2]) : '';
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear && initYear < rangeStart) rangeStart = initYear;
+  if (initYear && initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '<option value="">سال</option>';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '<option value="">ماه</option>';
+  JALALI_MONTHS_LEDGER.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    daySel.innerHTML = '<option value="">روز</option>';
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', updateHidden);
+  monthSel.addEventListener('change', updateHidden);
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupOptionalJalaliPickerLedger('dateFromHidden', 'fromDay', 'fromMonth', 'fromYear');
+setupOptionalJalaliPickerLedger('dateToHidden', 'toDay', 'toMonth', 'toYear');
+</script>
+{% endblock %}

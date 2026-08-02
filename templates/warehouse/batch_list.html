@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}بچ‌های موجودی{% endblock %}
+{% block page_title %}بچ‌های موجودی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-stack"></i></span>
+    بچ‌های موجودی
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">{{ total }}</span>
+  </h1>
+  <a href="{% url 'warehouse:stock_receive' %}" class="btn-erp btn-erp-success">
+    <i class="bi bi-box-arrow-in-down"></i> دریافت موجودی
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <div style="flex:1;min-width:180px;position:relative;">
+        <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}" class="erp-form-control"
+               style="padding-right:38px;" placeholder="نام محصول، شماره بچ...">
+      </div>
+      <select name="warehouse" class="erp-form-control" style="width:160px;" onchange="this.form.submit()">
+        <option value="">همه انبارها</option>
+        {% for wh in warehouses %}
+          <option value="{{ wh.pk }}" {% if warehouse_filter == wh.pk|stringformat:'s' %}selected{% endif %}>
+            {{ wh.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <select name="expiry" class="erp-form-control" style="width:160px;" onchange="this.form.submit()">
+        <option value="">همه بچ‌ها</option>
+        <option value="expiring" {% if expiry_filter == 'expiring' %}selected{% endif %}>در حال انقضا</option>
+        <option value="expired"  {% if expiry_filter == 'expired'  %}selected{% endif %}>منقضی شده</option>
+      </select>
+      <button type="submit" class="btn-erp btn-erp-primary">فیلتر</button>
+      {% if search or warehouse_filter or expiry_filter %}
+        <a href="{% url 'warehouse:batch_list' %}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>شماره بچ</th>
+            <th>محصول</th>
+            <th>انبار</th>
+            <th style="text-align:center;">باقی‌مانده</th>
+            <th style="text-align:left;">قیمت خرید</th>
+            <th style="text-align:left;">ارزش</th>
+            <th>انقضا</th>
+            <th>تاریخ ورود</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for batch in batches %}
+          <tr {% if batch.is_expired %}style="background:rgba(239,68,68,.04);"
+              {% elif batch.is_expiring_soon %}style="background:rgba(245,158,11,.04);"{% endif %}>
+            <td style="font-family:monospace;font-size:12px;color:var(--text-muted);">
+              {{ batch.batch_number }}
+            </td>
+            <td>
+              <strong>{{ batch.product.name }}</strong>
+              <div style="font-size:11px;color:var(--text-muted);">{{ batch.product.code }}</div>
+            </td>
+            <td>
+              <span class="erp-badge erp-badge-gray">{{ batch.warehouse.name }}</span>
+            </td>
+            <td style="text-align:center;font-weight:700;">
+              {{ batch.remaining_quantity|floatformat:"-3" }}
+              <span style="font-size:11px;color:var(--text-muted);">{{ batch.product.unit.abbreviation }}</span>
+            </td>
+
+            <!-- قیمت خرید: USD batch → show $ only, AFN batch → show ؋ only -->
+            <td style="text-align:left;direction:ltr;">
+              {% if batch.unit_cost_usd %}
+                <span style="font-weight:600;color:var(--accent-orange);">
+                  {{ batch.unit_cost_usd|floatformat:4|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> $</span>
+              {% else %}
+                <span style="font-weight:600;">
+                  {{ batch.unit_cost|floatformat:2|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> ؋</span>
+              {% endif %}
+            </td>
+
+            <!-- ارزش کل: USD batch → show $ only, AFN batch → show ؋ only -->
+            <td style="text-align:left;direction:ltr;font-weight:700;">
+              {% if batch.unit_cost_usd %}
+                <span style="color:var(--accent-orange);">
+                  {{ batch.total_cost_usd|floatformat:2|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> $</span>
+              {% else %}
+                <span style="color:var(--accent-green);">
+                  {{ batch.total_cost|floatformat:0|intcomma }}
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);"> ؋</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if batch.expiry_date %}
+                {% if batch.is_expired %}
+                  <span class="erp-badge erp-badge-danger">منقضی</span>
+                {% elif batch.is_expiring_soon %}
+                  <span class="erp-badge erp-badge-warning">{{ batch.days_until_expiry }} روز</span>
+                {% else %}
+                  <span style="font-size:12px;">{{ batch.expiry_date }}</span>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">{{ batch.created_at|jalali_datetime }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-stack"></i>
+                <h5>هیچ بچی یافت نشد</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-box-seam"></i></span>
+    {{ product.name }}
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'inventory:stock_adjust' product.pk %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-arrow-left-right"></i> تعدیل موجودی
+    </a>
+    <a href="{% url 'inventory:product_edit' product.pk %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-pencil"></i> ویرایش
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Product Info -->
+  <div class="col-lg-4">
+    <div class="erp-card mb-4">
+      <div class="erp-card-body" style="padding:28px;">
+        <!-- Stock status badge -->
+        <div class="text-center mb-4">
+          {% if product.stock_status == 'out' %}
+            <span class="erp-badge erp-badge-danger" style="font-size:14px;padding:8px 20px;">ناموجود</span>
+          {% elif product.stock_status == 'low' %}
+            <span class="erp-badge erp-badge-warning" style="font-size:14px;padding:8px 20px;">
+              <i class="bi bi-exclamation-triangle-fill"></i> موجودی کم
+            </span>
+          {% else %}
+            <span class="erp-badge erp-badge-success" style="font-size:14px;padding:8px 20px;">موجود</span>
+          {% endif %}
+        </div>
+
+        <!-- Stock number -->
+        <div class="text-center mb-4">
+          <div style="font-size:48px;font-weight:900;color:var(--text-primary);line-height:1;">
+            {{ product.current_stock|floatformat:"-3" }}
+          </div>
+          <div style="font-size:14px;color:var(--text-muted);">
+            {{ product.unit.name|default:"واحد" }}
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Info rows -->
+        <div style="font-size:13px;">
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">کد محصول</span>
+            <strong style="font-family:monospace;">{{ product.code }}</strong>
+          </div>
+          {% if product.barcode %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">بارکد</span>
+            <strong style="font-family:monospace;">{{ product.barcode }}</strong>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">دسته‌بندی</span>
+            <strong>{{ product.category.name|default:"—" }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">واحد</span>
+            <strong>{{ product.unit.name|default:"—" }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">قیمت فروش</span>
+            <strong>{{ product.sale_price|intcomma }} ؋</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">حداقل موجودی</span>
+            <strong>{{ product.minimum_stock|floatformat:"-3" }}</strong>
+          </div>
+          {% if product.has_expiry %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:var(--text-muted);">هشدار انقضا</span>
+            <strong>{{ product.expiry_warning_days }} روز</strong>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between">
+            <span style="color:var(--text-muted);">وضعیت</span>
+            {% if product.is_active %}
+              <span class="erp-badge erp-badge-success">فعال</span>
+            {% else %}
+              <span class="erp-badge erp-badge-gray">غیرفعال</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick adjust -->
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-arrow-left-right me-2"></i>تعدیل سریع موجودی
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" action="{% url 'inventory:stock_adjust' product.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="erp-label" style="font-size:12px;">نوع حرکت</label>
+            <select name="movement_type" class="erp-form-control" style="font-size:13px;">
+              <option value="adjustment">تعدیل موجودی</option>
+              <option value="opening">موجودی اولیه</option>
+              <option value="damage">ضایعات</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="erp-label" style="font-size:12px;">مقدار (+ افزایش / - کاهش)</label>
+            <input type="number" name="quantity" step="0.001"
+                   class="erp-form-control" style="font-size:13px;direction:ltr;"
+                   placeholder="مثال: 10 یا -5" required>
+          </div>
+          <div class="mb-3">
+            <label class="erp-label" style="font-size:12px;">یادداشت</label>
+            <input type="text" name="notes" class="erp-form-control" style="font-size:13px;"
+                   placeholder="دلیل تعدیل...">
+          </div>
+          <button type="submit" class="btn-erp btn-erp-primary w-100" style="font-size:13px;">
+            <i class="bi bi-check-circle"></i> ثبت تعدیل
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock History -->
+  <div class="col-lg-8">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-clock-history"></i>
+          </span>
+          تاریخچه موجودی
+        </h5>
+        <span class="erp-badge erp-badge-gray">{{ history|length }} رکورد</span>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <div class="erp-table-wrapper">
+          <table class="erp-table">
+            <thead>
+              <tr>
+                <th>تاریخ</th>
+                <th>نوع</th>
+                <th style="text-align:center;">مقدار</th>
+                <th style="text-align:center;">قبل</th>
+                <th style="text-align:center;">بعد</th>
+                <th>مرجع</th>
+                <th>توسط</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in history %}
+              <tr>
+                <td style="font-size:12px;color:var(--text-muted);white-space:nowrap;">
+                  {{ h.created_at|date:"Y/m/d H:i" }}
+                </td>
+                <td>
+                  {% if h.movement_type == 'purchase' %}
+                    <span class="erp-badge erp-badge-success">{{ h.get_movement_type_display }}</span>
+                  {% elif h.movement_type == 'sale' %}
+                    <span class="erp-badge erp-badge-danger">{{ h.get_movement_type_display }}</span>
+                  {% elif h.movement_type == 'opening' %}
+                    <span class="erp-badge erp-badge-info">{{ h.get_movement_type_display }}</span>
+                  {% else %}
+                    <span class="erp-badge erp-badge-gray">{{ h.get_movement_type_display }}</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:center;font-weight:700;">
+                  {% if h.quantity > 0 %}
+                    <span style="color:var(--accent-green);">+{{ h.quantity|floatformat:"-3" }}</span>
+                  {% else %}
+                    <span style="color:var(--accent-red);">{{ h.quantity|floatformat:"-3" }}</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:center;color:var(--text-muted);font-size:13px;">
+                  {{ h.quantity_before|floatformat:"-3" }}
+                </td>
+                <td style="text-align:center;font-weight:600;font-size:13px;">
+                  {{ h.quantity_after|floatformat:"-3" }}
+                </td>
+                <td style="font-size:12px;color:var(--text-muted);">
+                  {{ h.reference|default:"—" }}
+                </td>
+                <td style="font-size:12px;">
+                  {{ h.created_by.display_name|default:"سیستم" }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state" style="padding:40px;">
+                    <i class="bi bi-clock-history"></i>
+                    <h5>هیچ حرکتی ثبت نشده</h5>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

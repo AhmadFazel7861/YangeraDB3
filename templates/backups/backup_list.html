@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}بکاپ و بازیابی{% endblock %}
+{% block page_title %}بکاپ و بازیابی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-cloud-arrow-down"></i></span>
+    بکاپ و بازیابی
+  </h1>
+</div>
+
+<!-- DB Stats + Quick Backup -->
+<div class="row g-4 mb-4">
+
+  <!-- DB Info Card -->
+  <div class="col-lg-4">
+    <div class="erp-card h-100">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-database"></i>
+          </span>
+          وضعیت دیتابیس
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div style="font-size:13px;">
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--text-muted);">حجم دیتابیس</span>
+            <strong style="color:var(--accent-blue);">
+              {{ db_stats.size_display }}
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--text-muted);">تعداد جداول</span>
+            <strong>{{ db_stats.table_count }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span style="color:var(--text-muted);">آخرین بکاپ</span>
+            <strong>
+              {% if last_backup %}
+                {{ last_backup.created_at|timesince }} پیش
+              {% else %}
+                <span style="color:var(--accent-red);">هیچ</span>
+              {% endif %}
+            </strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span style="color:var(--text-muted);">وضعیت</span>
+            <span class="erp-badge erp-badge-success">
+              <i class="bi bi-circle-fill" style="font-size:8px;"></i>
+              متصل
+            </span>
+          </div>
+        </div>
+
+        {% if last_backup %}
+        <div class="mt-3 p-2 rounded"
+             style="background:rgba(16,185,129,.06);
+                    border:1px solid rgba(16,185,129,.15);font-size:12px;">
+          <i class="bi bi-check-circle-fill"
+             style="color:var(--accent-green);"></i>
+          آخرین بکاپ:
+          <strong>{{ last_backup.created_at|date:"Y/m/d H:i" }}</strong>
+        </div>
+        {% else %}
+        <div class="mt-3 p-2 rounded"
+             style="background:rgba(239,68,68,.06);
+                    border:1px solid rgba(239,68,68,.15);font-size:12px;">
+          <i class="bi bi-exclamation-triangle-fill"
+             style="color:var(--accent-red);"></i>
+          هنوز هیچ بکاپی گرفته نشده!
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Backup Card -->
+  <div class="col-lg-4">
+    <div class="erp-card h-100">
+      <div class="erp-card-header"
+           style="background:rgba(16,185,129,.04);">
+        <h5 class="erp-card-title"
+            style="color:var(--accent-green);">
+          <span class="card-icon"
+                style="background:rgba(16,185,129,.12);color:var(--accent-green);">
+            <i class="bi bi-cloud-arrow-down"></i>
+          </span>
+          گرفتن بکاپ جدید
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+          یک کپی کامل از دیتابیس سیستم ایجاد می‌کند.
+          توصیه می‌شود هر روز بکاپ بگیرید.
+        </p>
+        <form method="post" action="{% url 'backups:create_backup' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="erp-label">یادداشت (اختیاری)</label>
+            <input type="text" name="notes"
+                   class="erp-form-control"
+                   placeholder="مثال: بکاپ قبل از ویرایش...">
+          </div>
+          <button type="submit"
+                  class="btn-erp btn-erp-success w-100"
+                  style="padding:12px;font-size:15px;">
+            <i class="bi bi-cloud-arrow-down"></i>
+            گرفتن بکاپ الان
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Restore Card -->
+  <div class="col-lg-4">
+    <div class="erp-card h-100">
+      <div class="erp-card-header"
+           style="background:rgba(245,158,11,.04);">
+        <h5 class="erp-card-title"
+            style="color:var(--accent-orange);">
+          <span class="card-icon"
+                style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+            <i class="bi bi-cloud-arrow-up"></i>
+          </span>
+          بازیابی از فایل
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <div class="mb-3 p-3 rounded"
+             style="background:rgba(239,68,68,.06);
+                    border:1px solid rgba(239,68,68,.15);font-size:12px;">
+          <i class="bi bi-exclamation-triangle-fill"
+             style="color:var(--accent-red);"></i>
+          <strong>هشدار:</strong>
+          بازیابی دیتابیس فعلی را کاملاً با فایل بکاپ جایگزین می‌کند.
+          این عمل برگشت‌پذیر نیست!
+        </div>
+        <form method="post" action="{% url 'backups:upload_restore' %}"
+              enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="erp-label">فایل بکاپ (.sqlite3)</label>
+            <input type="file" name="backup_file"
+                   class="erp-form-control"
+                   accept=".sqlite3,.db,.sqlite"
+                   required>
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">
+              تایید: کلمه «بازیابی» را تایپ کنید
+            </label>
+            <input type="text" name="confirm_text"
+                   class="erp-form-control"
+                   placeholder="بازیابی"
+                   required>
+          </div>
+          <button type="submit"
+                  class="btn-erp btn-erp-danger w-100"
+                  style="padding:12px;"
+                  onclick="return confirm('آیا مطمئن هستید؟ این عمل دیتابیس را جایگزین می‌کند.')">
+            <i class="bi bi-cloud-arrow-up"></i>
+            بازیابی از فایل
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Backup History -->
+<div class="erp-card">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-clock-history"></i>
+      </span>
+      تاریخچه بکاپ‌ها
+      <span class="erp-badge erp-badge-gray">
+        {{ backups|length }}
+      </span>
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>تاریخ و زمان</th>
+            <th>نام فایل</th>
+            <th style="text-align:center;">حجم</th>
+            <th style="text-align:center;">وضعیت</th>
+            <th>یادداشت</th>
+            <th>توسط</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for backup in backups %}
+          <tr>
+            <td style="font-size:13px;white-space:nowrap;font-weight:600;">
+              {{ backup.created_at|date:"Y/m/d H:i:s" }}
+            </td>
+            <td>
+              <span style="font-family:monospace;font-size:12px;
+                           color:var(--text-muted);">
+                {{ backup.filename }}
+              </span>
+              {% if not backup.file_exists %}
+                <span class="erp-badge erp-badge-danger"
+                      style="font-size:9px;">
+                  فایل حذف شده
+                </span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;font-size:13px;">
+              {{ backup.file_size_display }}
+            </td>
+            <td style="text-align:center;">
+              {% if backup.status == 'success' %}
+                <span class="erp-badge erp-badge-success">موفق</span>
+              {% elif backup.status == 'failed' %}
+                <span class="erp-badge erp-badge-danger">ناموفق</span>
+              {% elif backup.status == 'restored' %}
+                <span class="erp-badge erp-badge-info">بازیابی شده</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ backup.notes|default:"—"|truncatechars:40 }}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ backup.created_by.display_name|default:"سیستم" }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                {% if backup.file_exists and backup.status == 'success' %}
+                <!-- Download -->
+                <a href="{% url 'backups:download' backup.pk %}"
+                   class="btn-erp btn-erp-primary"
+                   style="padding:4px 10px;font-size:12px;"
+                   title="دانلود">
+                  <i class="bi bi-download"></i>
+                </a>
+                <!-- Restore -->
+                <button type="button"
+                        class="btn-erp btn-erp-warning"
+                        style="padding:4px 10px;font-size:12px;"
+                        title="بازیابی"
+                        onclick="showRestoreModal('{{ backup.pk }}', '{{ backup.filename }}')">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+                {% endif %}
+                <!-- Delete -->
+                <form method="post"
+                      action="{% url 'backups:delete' backup.pk %}"
+                      onsubmit="return confirm('بکاپ «{{ backup.filename }}» حذف شود؟')">
+                  {% csrf_token %}
+                  <button class="btn-erp btn-erp-outline"
+                          style="padding:4px 10px;font-size:12px;"
+                          title="حذف">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state" style="padding:40px;">
+                <i class="bi bi-cloud-slash"></i>
+                <h5>هیچ بکاپی ثبت نشده</h5>
+                <p style="font-size:13px;">
+                  اولین بکاپ خود را همین الان بگیرید
+                </p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Restore Modal -->
+<div id="restoreModal"
+     style="display:none;position:fixed;inset:0;
+            background:rgba(0,0,0,.6);z-index:9999;
+            align-items:center;justify-content:center;">
+  <div style="background:var(--bg-secondary);border-radius:16px;
+              padding:32px;max-width:480px;width:90%;
+              box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <h5 style="font-size:18px;font-weight:800;margin-bottom:8px;
+               color:var(--accent-red);">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      تایید بازیابی
+    </h5>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      دیتابیس فعلی با فایل زیر جایگزین می‌شود:
+    </p>
+    <div id="restoreFilename"
+         style="font-family:monospace;font-size:13px;
+                padding:10px;background:var(--bg-tertiary);
+                border-radius:8px;margin-bottom:16px;"></div>
+
+    <div class="mb-3 p-3 rounded"
+         style="background:rgba(239,68,68,.08);
+                border:1px solid rgba(239,68,68,.2);font-size:12px;">
+      <strong>هشدار مهم:</strong>
+      این عمل تمام اطلاعات فعلی را پاک می‌کند.
+      یک بکاپ خودکار قبل از بازیابی ایجاد می‌شود.
+    </div>
+
+    <form method="post" id="restoreForm">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="erp-label">
+          برای تایید، کلمه «بازیابی» را تایپ کنید:
+        </label>
+        <input type="text" name="confirm_text"
+               id="restoreConfirmInput"
+               class="erp-form-control"
+               placeholder="بازیابی"
+               autofocus>
+      </div>
+      <div class="d-flex gap-3">
+        <button type="submit"
+                class="btn-erp btn-erp-danger"
+                style="flex:1;padding:12px;">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          بازیابی
+        </button>
+        <button type="button"
+                onclick="closeRestoreModal()"
+                class="btn-erp btn-erp-outline"
+                style="flex:1;padding:12px;">
+          انصراف
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showRestoreModal(pk, filename) {
+  document.getElementById('restoreFilename').textContent = filename;
+  document.getElementById('restoreForm').action =
+    '/backups/' + pk + '/restore/';
+  document.getElementById('restoreConfirmInput').value = '';
+  const modal = document.getElementById('restoreModal');
+  modal.style.display = 'flex';
+  document.getElementById('restoreConfirmInput').focus();
+}
+
+function closeRestoreModal() {
+  document.getElementById('restoreModal').style.display = 'none';
+}
+
+// Close on backdrop click
+document.getElementById('restoreModal').addEventListener('click', function(e) {
+  if (e.target === this) closeRestoreModal();
+});
+
+// ESC to close
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeRestoreModal();
+});
+</script>
+{% endblock %}

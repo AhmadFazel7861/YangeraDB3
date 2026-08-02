@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}تایید بازیابی{% endblock %}
+{% block page_title %}تایید بازیابی{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="erp-card"
+         style="border-color:rgba(239,68,68,.3);">
+      <div class="erp-card-header"
+           style="background:rgba(239,68,68,.06);">
+        <h5 class="erp-card-title"
+            style="color:var(--accent-red);">
+          <span class="card-icon"
+                style="background:rgba(239,68,68,.15);color:var(--accent-red);">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </span>
+          اطلاعات فایل بکاپ
+        </h5>
+      </div>
+      <div class="erp-card-body">
+
+        <!-- Validation Results -->
+        <div class="mb-4 p-3 rounded"
+             style="background:rgba(16,185,129,.06);
+                    border:1px solid rgba(16,185,129,.2);">
+          <div style="font-size:13px;">
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">نام فایل</span>
+              <strong style="font-family:monospace;font-size:12px;">
+                {{ filename }}
+              </strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">حجم فایل</span>
+              <strong>{{ validation.size_display }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">تعداد جداول</span>
+              <strong>{{ validation.table_count }}</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span style="color:var(--text-muted);">وضعیت</span>
+              <span class="erp-badge erp-badge-success">
+                <i class="bi bi-check-circle-fill"></i> معتبر
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4 p-3 rounded"
+             style="background:rgba(239,68,68,.08);
+                    border:1px solid rgba(239,68,68,.2);font-size:13px;">
+          <strong style="color:var(--accent-red);">
+            <i class="bi bi-exclamation-octagon-fill me-1"></i>
+            هشدار مهم
+          </strong>
+          <ul style="margin-top:8px;padding-right:20px;
+                     color:var(--text-secondary);">
+            <li>تمام اطلاعات فعلی پاک می‌شود</li>
+            <li>یک بکاپ خودکار از وضعیت فعلی گرفته می‌شود</li>
+            <li>بعد از بازیابی سیستم باید ریستارت شود</li>
+          </ul>
+        </div>
+
+        <form method="post" action="{% url 'backups:upload_restore' %}">
+          {% csrf_token %}
+          <input type="hidden" name="tmp_path" value="{{ tmp_path }}">
+          <input type="hidden" name="filename" value="{{ filename }}">
+          <div class="mb-3">
+            <label class="erp-label">
+              برای تایید نهایی، کلمه «بازیابی» را تایپ کنید:
+            </label>
+            <input type="text" name="confirm_text"
+                   class="erp-form-control"
+                   placeholder="بازیابی" autofocus required>
+          </div>
+          <div class="d-flex gap-3">
+            <button type="submit"
+                    class="btn-erp btn-erp-danger"
+                    style="flex:1;padding:12px;font-size:15px;">
+              <i class="bi bi-arrow-counterclockwise"></i>
+              بازیابی
+            </button>
+            <a href="{% url 'backups:backup_list' %}"
+               class="btn-erp btn-erp-outline"
+               style="flex:1;padding:12px;text-align:center;">
+              انصراف
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

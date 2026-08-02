@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}گزارش موجودی{% endblock %}
+{% block page_title %}گزارش موجودی انبار{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-boxes"></i></span>
+    گزارش موجودی انبار
+  </h1>
+  <button onclick="window.print()" class="btn-erp btn-erp-outline no-print">
+    <i class="bi bi-printer"></i> پرینت
+  </button>
+</div>
+
+<!-- Summary -->
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش کل موجودی</div>
+        <div class="stat-value" style="font-size:18px;">
+          {{ total.total_value|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">ارزش کل موجودی</div>
+        <div class="stat-value" style="font-size:18px;direction:ltr;">
+          $ {{ total.total_value_usd|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">دالر</div>
+      </div>
+      <div class="stat-card-icon accent-green">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">بچ‌های فعال</div>
+        <div class="stat-value">{{ total.total_batches|default:0 }}</div>
+        <div class="stat-sub">بچ موجود</div>
+      </div>
+      <div class="stat-card-icon accent-blue">
+        <i class="bi bi-stack"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">محصول موجودی کم</div>
+        <div class="stat-value"
+             style="color:var(--accent-orange);">
+          {{ low_stock|length }}
+        </div>
+        <div class="stat-sub">محصول</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">در حال انقضا</div>
+        <div class="stat-value" style="color:var(--accent-red);">
+          {{ expiring|length }}
+        </div>
+        <div class="stat-sub">بچ (۳۰ روز)</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-clock-history"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Valuation Table -->
+<div class="erp-card mb-4">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon"
+            style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+        <i class="bi bi-table"></i>
+      </span>
+      ارزش موجودی به تفکیک محصول
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>محصول</th>
+            <th>دسته‌بندی</th>
+            <th style="text-align:center;">بچ</th>
+            <th style="text-align:center;">موجودی</th>
+            <th style="text-align:left;">میانگین قیمت (؋)</th>
+            <th style="text-align:left;">میانگین قیمت ($)</th>
+            <th style="text-align:left;">ارزش کل (؋)</th>
+            <th style="text-align:left;">ارزش کل ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in valuation %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:12px;">
+              {{ forloop.counter }}
+            </td>
+            <td>
+              <strong>{{ row.product__name }}</strong>
+              <div style="font-size:11px;color:var(--text-muted);
+                          font-family:monospace;">
+                {{ row.product__code }}
+              </div>
+            </td>
+            <td>
+              {% if row.product__category__name %}
+                <span class="erp-badge erp-badge-info">
+                  {{ row.product__category__name }}
+                </span>
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="erp-badge erp-badge-gray">{{ row.batch_count }}</span>
+            </td>
+            <td style="text-align:center;font-weight:700;">
+              {{ row.total_quantity|floatformat:"-3"|intcomma }}
+              <span style="font-size:11px;color:var(--text-muted);">
+                {{ row.product__unit__abbreviation }}
+              </span>
+            </td>
+            <td style="text-align:left;direction:ltr;font-size:12px;">
+              {{ row.avg_cost|floatformat:2|intcomma }} ؋
+            </td>
+            <td style="text-align:left;direction:ltr;font-size:12px;">
+              $ {{ row.avg_cost_usd|floatformat:2|intcomma }}
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:800;
+                       color:var(--accent-green);">
+              {{ row.total_value|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:800;
+                       color:var(--accent-green);">
+              $ {{ row.total_value_usd|floatformat:0|intcomma }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h5>موجودی ثبت نشده</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if valuation %}
+        <tfoot>
+          <tr style="background:var(--table-header);font-weight:800;">
+            <td colspan="6" style="padding:14px 16px;">مجموع</td>
+            <td style="padding:14px 16px;text-align:left;direction:ltr;
+                       font-size:16px;color:var(--accent-green);">
+              {{ total.total_value|default:0|floatformat:0|intcomma }} ؋
+            </td>
+            <td style="padding:14px 16px;text-align:left;direction:ltr;
+                       font-size:16px;color:var(--accent-green);">
+              $ {{ total.total_value_usd|default:0|floatformat:0|intcomma }}
+            </td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Low Stock Alert -->
+{% if low_stock %}
+<div class="erp-card mb-4">
+  <div class="erp-card-header"
+       style="background:rgba(245,158,11,.06);">
+    <h5 class="erp-card-title" style="color:var(--accent-orange);">
+      <span class="card-icon"
+            style="background:rgba(245,158,11,.15);color:var(--accent-orange);">
+        <i class="bi bi-exclamation-triangle"></i>
+      </span>
+      محصولات با موجودی کم
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <table class="erp-table">
+      <thead>
+        <tr>
+          <th>محصول</th>
+          <th style="text-align:center;">موجودی فعلی</th>
+          <th style="text-align:center;">حداقل</th>
+          <th>وضعیت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in low_stock %}
+        <tr>
+          <td>
+            <a href="{% url 'inventory:product_detail' p.pk %}"
+               style="font-weight:700;color:var(--text-primary);
+                      text-decoration:none;">
+              {{ p.name }}
+            </a>
+          </td>
+          <td style="text-align:center;font-weight:700;color:var(--accent-red);">
+            {{ p.current_stock|floatformat:"-3" }}
+            {{ p.unit.abbreviation }}
+          </td>
+          <td style="text-align:center;color:var(--text-muted);">
+            {{ p.minimum_stock|floatformat:"-3" }}
+          </td>
+          <td>
+            {% if p.current_stock <= 0 %}
+              <span class="erp-badge erp-badge-danger">ناموجود</span>
+            {% else %}
+              <span class="erp-badge erp-badge-warning">کم</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

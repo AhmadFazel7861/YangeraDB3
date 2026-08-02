@@ -1,0 +1,12 @@
+dist/
+build/
+*.spec
+__pycache__/
+*.pyc
+db.sqlite3
+.env
+media/
+staticfiles/
+*.log
+venv/
+env/

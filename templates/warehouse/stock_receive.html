@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %}دریافت موجودی{% endblock %}
+{% block page_title %}دریافت موجودی{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-box-arrow-in-down"></i></span>
+    دریافت موجودی به انبار
+  </h1>
+  <a href="{% url 'warehouse:warehouse_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Main Form -->
+    <div class="col-lg-8">
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-box-seam"></i>
+            </span>
+            اطلاعات محصول
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.product.label }} <span class="text-danger">*</span></label>
+              {{ form.product }}
+              {% if form.product.errors %}<div class="erp-field-error">{{ form.product.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.warehouse.label }} <span class="text-danger">*</span></label>
+              {{ form.warehouse }}
+              {% if form.warehouse.errors %}<div class="erp-field-error">{{ form.warehouse.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.quantity.label }} <span class="text-danger">*</span></label>
+              {{ form.quantity }}
+              {% if form.quantity.errors %}<div class="erp-field-error">{{ form.quantity.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.unit_cost.label }} <span class="text-danger">*</span></label>
+              {{ form.unit_cost }}
+              {% if form.unit_cost.errors %}<div class="erp-field-error">{{ form.unit_cost.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">{{ form.unit_cost_usd.label }}</label>
+              {{ form.unit_cost_usd }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expiry -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(245,158,11,.1);color:var(--accent-orange);">
+              <i class="bi bi-clock"></i>
+            </span>
+            تاریخ تولید و انقضا (شمسی)
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.manufactured_date.label }}</label>
+              <div class="d-flex gap-1" dir="ltr">
+                <select id="mfgDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="mfgMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="mfgYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              {{ form.manufactured_date }}
+              {% if form.manufactured_date.errors %}<div class="erp-field-error">{{ form.manufactured_date.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.expiry_date.label }}</label>
+              <div class="d-flex gap-1" dir="ltr">
+                <select id="expDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="expMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="expYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              {{ form.expiry_date }}
+              {% if form.expiry_date.errors %}<div class="erp-field-error">{{ form.expiry_date.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reference -->
+      <div class="erp-card">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+              <i class="bi bi-file-text"></i>
+            </span>
+            اطلاعات تامین‌کننده
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.supplier_name.label }}</label>
+              {{ form.supplier_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.purchase_reference.label }}</label>
+              {{ form.purchase_reference }}
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Summary -->
+    <div class="col-lg-4">
+      <div class="erp-card mb-4" style="position:sticky;top:80px;">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+              <i class="bi bi-calculator"></i>
+            </span>
+            خلاصه دریافت
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div id="receiveSummary" style="font-size:13px;">
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">مقدار</span>
+              <strong id="summaryQty">—</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">قیمت فی واحد</span>
+              <strong id="summaryUnitCost">—</strong>
+            </div>
+            <div class="divider"></div>
+            <div class="d-flex justify-content-between">
+              <span style="color:var(--text-muted);">ارزش کل</span>
+              <strong id="summaryTotal" style="font-size:16px;color:var(--accent-green);">—</strong>
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 rounded" style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);font-size:12px;color:var(--text-muted);">
+            <i class="bi bi-info-circle me-1"></i>
+            این عملیات یک بچ FIFO جدید ایجاد می‌کند و موجودی محصول را به‌روزرسانی می‌کند.
+          </div>
+
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn-erp btn-erp-success" style="padding:12px;font-size:15px;">
+              <i class="bi bi-check-circle"></i> ثبت دریافت
+            </button>
+            <a href="{% url 'warehouse:warehouse_list' %}" class="btn-erp btn-erp-outline"
+               style="padding:12px;text-align:center;">
+              انصراف
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Optional Jalali dropdown picker (day/month/year, blank = no date) ──
+const JALALI_MONTHS_RECEIVE = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function setupOptionalJalaliPickerReceive(hiddenId, dayId, monthId, yearId) {
+  const hidden   = document.getElementById(hiddenId);
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parts.length === 3 ? parseInt(parts[0]) : '';
+  const initMonth = parts.length === 3 ? parseInt(parts[1]) : '';
+  const initDay   = parts.length === 3 ? parseInt(parts[2]) : '';
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear && initYear < rangeStart) rangeStart = initYear;
+  if (initYear && initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '<option value="">سال</option>';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '<option value="">ماه</option>';
+  JALALI_MONTHS_RECEIVE.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    daySel.innerHTML = '<option value="">روز</option>';
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', updateHidden);
+  monthSel.addEventListener('change', updateHidden);
+  daySel.addEventListener('change', updateHidden);
+}
+
+setupOptionalJalaliPickerReceive('id_manufactured_date', 'mfgDay', 'mfgMonth', 'mfgYear');
+setupOptionalJalaliPickerReceive('id_expiry_date', 'expDay', 'expMonth', 'expYear');
+
+// ── Live summary calculation (unchanged) ──
+function updateSummary() {
+  const qty = parseFloat(document.querySelector('[name="quantity"]').value) || 0;
+  const cost = parseFloat(document.querySelector('[name="unit_cost"]').value) || 0;
+  const total = qty * cost;
+
+  document.getElementById('summaryQty').textContent =
+    qty > 0 ? qty.toLocaleString() : '—';
+  document.getElementById('summaryUnitCost').textContent =
+    cost > 0 ? cost.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ؋' : '—';
+  document.getElementById('summaryTotal').textContent =
+    total > 0 ? total.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ؋' : '—';
+}
+
+document.querySelector('[name="quantity"]').addEventListener('input', updateSummary);
+document.querySelector('[name="unit_cost"]').addEventListener('input', updateSummary);
+</script>
+{% endblock %}

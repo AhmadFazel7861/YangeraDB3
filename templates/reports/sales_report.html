@@ -1,0 +1,595 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load static %}
+{% load jalali_tags %}
+{% block title %}گزارش فروش{% endblock %}
+{% block page_title %}گزارش فروش{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-cart3"></i></span>
+    گزارش فروش
+  </h1>
+  <button onclick="window.print()" class="btn-erp btn-erp-outline no-print">
+    <i class="bi bi-printer"></i> پرینت
+  </button>
+</div>
+
+<!-- Period Filter -->
+<div class="erp-card mb-4 no-print">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <div class="d-flex gap-1 flex-wrap">
+        {% for val, label in period_choices %}
+          <a href="?period={{ val }}"
+             class="btn-erp {% if period == val %}btn-erp-primary{% else %}btn-erp-outline{% endif %}"
+             style="padding:6px 14px;font-size:12px;">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </div>
+      <div class="d-flex gap-2 align-items-center me-auto">
+        <select id="sr_from_day" class="erp-form-control" style="width:70px;"></select>
+        <select id="sr_from_month" class="erp-form-control" style="width:100px;"></select>
+        <select id="sr_from_year" class="erp-form-control" style="width:85px;"></select>
+        <input type="hidden" name="date_from" id="sr_date_from" value="{{ date_from }}">
+        <span style="color:var(--text-muted);">تا</span>
+        <select id="sr_to_day" class="erp-form-control" style="width:70px;"></select>
+        <select id="sr_to_month" class="erp-form-control" style="width:100px;"></select>
+        <select id="sr_to_year" class="erp-form-control" style="width:85px;"></select>
+        <input type="hidden" name="date_to" id="sr_date_to" value="{{ date_to }}">
+        <input type="hidden" name="period" value="custom">
+        <button type="submit" class="btn-erp btn-erp-primary"
+                style="padding:7px 14px;font-size:12px;">اعمال</button>
+      </div>
+      <button type="button" onclick="window.print()"
+              class="btn-erp btn-erp-outline" style="font-size:12px;">
+        <i class="bi bi-printer"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Summary Cards — AFN -->
+<div class="stats-grid mb-3">
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع فروش</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals.total_sales|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {{ totals.invoice_count|default:0 }} فاکتور | افغانی ؋
+        </div>
+      </div>
+      <div class="stat-card-icon accent-blue">
+        <i class="bi bi-cart3"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">قیمت تمام شده (FIFO)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals.total_cost|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-box-seam"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card {% if gross_profit >= 0 %}accent-green{% else %}accent-red{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">سود ناخالص</div>
+        <div class="stat-value" style="font-size:20px;color:{% if gross_profit >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ gross_profit|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">{{ profit_margin|floatformat:1 }}% حاشیه سود</div>
+      </div>
+      <div class="stat-card-icon {% if gross_profit >= 0 %}accent-green{% else %}accent-red{% endif %}">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده وصول نشده</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals.total_remaining|default:0|floatformat:0|intcomma }}
+        </div>
+        <div class="stat-sub">افغانی ؋</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards — USD (only if there's USD activity) -->
+{% if totals_usd.total_sales %}
+<div class="stats-grid mb-4">
+  <div class="stat-card accent-blue">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مجموع فروش ($)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals_usd.total_sales|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">
+          {{ totals_usd.invoice_count|default:0 }} فاکتور | دالر $
+        </div>
+      </div>
+      <div class="stat-card-icon accent-blue">
+        <i class="bi bi-currency-dollar"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">قیمت تمام شده ($)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals_usd.total_cost|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon"
+           style="background:rgba(245,158,11,.12);color:var(--accent-orange);">
+        <i class="bi bi-box-seam"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card {% if gross_profit_usd >= 0 %}accent-green{% else %}accent-red{% endif %}">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">سود ناخالص ($)</div>
+        <div class="stat-value" style="font-size:20px;color:{% if gross_profit_usd >= 0 %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+          {{ gross_profit_usd|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">{{ profit_margin_usd|floatformat:1 }}% حاشیه سود</div>
+      </div>
+      <div class="stat-card-icon {% if gross_profit_usd >= 0 %}accent-green{% else %}accent-red{% endif %}">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-card-inner">
+      <div class="stat-card-info">
+        <div class="stat-label">مانده وصول نشده ($)</div>
+        <div class="stat-value" style="font-size:20px;">
+          {{ totals_usd.total_remaining|default:0|floatformat:2|intcomma }}
+        </div>
+        <div class="stat-sub">دالر $</div>
+      </div>
+      <div class="stat-card-icon accent-red">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  {% if daily %}
+  <div class="col-lg-8">
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-bar-chart-line"></i>
+          </span>
+          فروش روزانه (افغانی)
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th style="text-align:center;">تعداد فاکتور</th>
+              <th style="text-align:left;">فروش</th>
+              <th style="text-align:left;">قیمت تمام شده</th>
+              <th style="text-align:left;">سود</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for day in daily %}
+            <tr>
+              <td style="font-weight:600;">{{ day.invoice_date|jalali }}</td>
+              <td style="text-align:center;">
+                <span class="erp-badge erp-badge-info">{{ day.count }}</span>
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {{ day.sales|floatformat:0|intcomma }} ؋
+              </td>
+              <td style="text-align:left;direction:ltr;color:var(--text-muted);">
+                {{ day.cost|default:0|floatformat:0|intcomma }} ؋
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                <span style="color:var(--accent-green);">
+                  +{{ day.sales|add:day.cost|floatformat:0|intcomma }} ؋
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--table-header);font-weight:800;">
+              <td style="padding:12px 16px;">مجموع</td>
+              <td style="padding:12px 16px;text-align:center;">{{ totals.invoice_count|default:0 }}</td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;color:var(--accent-blue);">
+                {{ totals.total_sales|default:0|floatformat:0|intcomma }} ؋
+              </td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;">
+                {{ totals.total_cost|default:0|floatformat:0|intcomma }} ؋
+              </td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;color:var(--accent-green);">
+                {{ gross_profit|floatformat:0|intcomma }} ؋
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    {% if daily_usd %}
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-bar-chart-line"></i>
+          </span>
+          فروش روزانه (دالر)
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th style="text-align:center;">تعداد فاکتور</th>
+              <th style="text-align:left;">فروش</th>
+              <th style="text-align:left;">قیمت تمام شده</th>
+              <th style="text-align:left;">سود</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for day in daily_usd %}
+            <tr>
+              <td style="font-weight:600;">{{ day.invoice_date|jalali }}</td>
+              <td style="text-align:center;">
+                <span class="erp-badge erp-badge-info">{{ day.count }}</span>
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                {{ day.sales|floatformat:2|intcomma }} $
+              </td>
+              <td style="text-align:left;direction:ltr;color:var(--text-muted);">
+                {{ day.cost|default:0|floatformat:2|intcomma }} $
+              </td>
+              <td style="text-align:left;direction:ltr;font-weight:700;">
+                <span style="color:var(--accent-green);">
+                  +{{ day.sales|add:day.cost|floatformat:2|intcomma }} $
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--table-header);font-weight:800;">
+              <td style="padding:12px 16px;">مجموع</td>
+              <td style="padding:12px 16px;text-align:center;">{{ totals_usd.invoice_count|default:0 }}</td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;color:var(--accent-blue);">
+                {{ totals_usd.total_sales|default:0|floatformat:2|intcomma }} $
+              </td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;">
+                {{ totals_usd.total_cost|default:0|floatformat:2|intcomma }} $
+              </td>
+              <td style="padding:12px 16px;text-align:left;direction:ltr;color:var(--accent-green);">
+                {{ gross_profit_usd|floatformat:2|intcomma }} $
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="col-lg-4">
+    {% if top_products %}
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-box-seam me-2"></i>پرفروش‌ترین محصولات
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>محصول</th>
+              <th style="text-align:left;">درآمد</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in top_products %}
+            <tr>
+              <td style="font-size:13px;font-weight:600;">{{ p.product__name }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-blue);font-size:12px;">
+                {{ p.total_revenue|floatformat:0|intcomma }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if top_customers %}
+    <div class="erp-card mb-4">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-people me-2"></i>مشتریان برتر (افغانی)
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>مشتری</th>
+              <th style="text-align:left;">خرید</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in top_customers %}
+            <tr>
+              <td style="font-size:13px;font-weight:600;">{{ c.customer__name }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-green);font-size:12px;">
+                {{ c.total|floatformat:0|intcomma }} ؋
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if top_customers_usd %}
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title" style="font-size:13px;">
+          <i class="bi bi-people me-2"></i>مشتریان برتر (دالر)
+        </h5>
+      </div>
+      <div class="erp-card-body" style="padding:0;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>مشتری</th>
+              <th style="text-align:left;">خرید</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in top_customers_usd %}
+            <tr>
+              <td style="font-size:13px;font-weight:600;">{{ c.customer__name }}</td>
+              <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-green);font-size:12px;">
+                {{ c.total|floatformat:2|intcomma }} $
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Invoice Table -->
+<div class="erp-card mt-4">
+  <div class="erp-card-header">
+    <h5 class="erp-card-title">
+      <span class="card-icon" style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+        <i class="bi bi-receipt"></i>
+      </span>
+      فاکتورهای دوره
+      <span class="erp-badge erp-badge-gray">
+        {{ totals.invoice_count|default:0|add:totals_usd.invoice_count|default:0 }}
+      </span>
+    </h5>
+  </div>
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>فاکتور</th>
+            <th>مشتری</th>
+            <th>تاریخ</th>
+            <th style="text-align:left;">فروش</th>
+            <th style="text-align:left;">تمام شده</th>
+            <th style="text-align:left;">سود</th>
+            <th style="text-align:left;">مانده</th>
+            <th style="text-align:center;">وضعیت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td>
+              <a href="{% url 'sales:invoice_detail' inv.pk %}"
+                 style="font-family:monospace;font-weight:700;color:var(--accent-blue);text-decoration:none;">
+                {{ inv.invoice_number }}
+              </a>
+              {% if inv.currency == 'USD' %}
+                <span class="erp-badge erp-badge-info" style="font-size:10px;">$</span>
+              {% endif %}
+            </td>
+            <td style="font-weight:600;">{{ inv.customer.name }}</td>
+            <td style="font-size:12px;">{{ inv.invoice_date|jalali }}</td>
+            <td style="text-align:left;direction:ltr;font-weight:600;">
+              {% if inv.currency == 'USD' %}
+                {{ inv.total_amount|floatformat:2|intcomma }} $
+              {% else %}
+                {{ inv.total_amount|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;font-size:12px;color:var(--text-muted);">
+              {% if inv.currency == 'USD' %}
+                {{ inv.total_cost|floatformat:2|intcomma }} $
+              {% else %}
+                {{ inv.total_cost|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-green);">
+              {% if inv.currency == 'USD' %}
+                {{ inv.gross_profit|floatformat:2|intcomma }} $
+              {% else %}
+                {{ inv.gross_profit|floatformat:0|intcomma }} ؋
+              {% endif %}
+            </td>
+            <td style="text-align:left;direction:ltr;">
+              {% if inv.remaining_amount > 0 %}
+                <span style="color:var(--accent-red);">
+                  {% if inv.currency == 'USD' %}
+                    {{ inv.remaining_amount|floatformat:2|intcomma }} $
+                  {% else %}
+                    {{ inv.remaining_amount|floatformat:0|intcomma }} ؋
+                  {% endif %}
+                </span>
+              {% else %}
+                <span style="color:var(--accent-green);">—</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              {% if inv.status == 'paid' %}
+                <span class="erp-badge erp-badge-success">کامل</span>
+              {% elif inv.status == 'partial' %}
+                <span class="erp-badge erp-badge-warning">جزئی</span>
+              {% else %}
+                <span class="erp-badge erp-badge-danger">نشده</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-receipt"></i>
+                <h5>هیچ فاکتوری در این دوره یافت نشد</h5>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const JALALI_MONTHS_SalesReport = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+  function jalaliIsLeapSalesReport(year) {
+    const cycle = year - (year > 0 ? 474 : 473);
+    const y = 474 + (((cycle % 2820) + 2820) % 2820);
+    return (((y + 38) * 682) % 2816) < 682;
+  }
+
+  function jalaliMonthLengthSalesReport(year, month) {
+    if (month <= 6) return 31;
+    if (month <= 11) return 30;
+    return jalaliIsLeapSalesReport(year) ? 30 : 29;
+  }
+
+  function setupOptionalJalaliPickerSalesReport(hiddenId, dayId, monthId, yearId, initialValue) {
+    const currentYear = {{ current_jalali_year }};
+    const daySel = document.getElementById(dayId);
+    const monthSel = document.getElementById(monthId);
+    const yearSel = document.getElementById(yearId);
+    const hiddenInput = document.getElementById(hiddenId);
+
+    let initYear = null, initMonth = null, initDay = null;
+    if (initialValue) {
+      const parts = initialValue.split('/');
+      if (parts.length === 3) {
+        initYear = parseInt(parts[0], 10);
+        initMonth = parseInt(parts[1], 10);
+        initDay = parseInt(parts[2], 10);
+      }
+    }
+
+    let minYear = currentYear - 15;
+    let maxYear = currentYear + 15;
+    if (initYear && initYear < minYear) minYear = initYear;
+    if (initYear && initYear > maxYear) maxYear = initYear;
+
+    monthSel.innerHTML = '<option value="">ماه</option>';
+    JALALI_MONTHS_SalesReport.forEach((name, idx) => {
+      monthSel.innerHTML += `<option value="${idx + 1}">${name}</option>`;
+    });
+
+    yearSel.innerHTML = '<option value="">سال</option>';
+    for (let y = minYear; y <= maxYear; y++) {
+      yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+
+    function rebuildDays() {
+      const y = parseInt(yearSel.value, 10);
+      const m = parseInt(monthSel.value, 10);
+      const prevDay = daySel.value;
+      const maxDay = (y && m) ? jalaliMonthLengthSalesReport(y, m) : 31;
+      daySel.innerHTML = '<option value="">روز</option>';
+      for (let d = 1; d <= maxDay; d++) {
+        daySel.innerHTML += `<option value="${d}">${d}</option>`;
+      }
+      if (prevDay && parseInt(prevDay, 10) <= maxDay) {
+        daySel.value = prevDay;
+      }
+    }
+
+    function updateHidden() {
+      const d = daySel.value, m = monthSel.value, y = yearSel.value;
+      if (d && m && y) {
+        hiddenInput.value = `${y}/${('0' + m).slice(-2)}/${('0' + d).slice(-2)}`;
+      } else {
+        hiddenInput.value = '';
+      }
+    }
+
+    monthSel.addEventListener('change', () => { rebuildDays(); updateHidden(); });
+    yearSel.addEventListener('change', () => { rebuildDays(); updateHidden(); });
+    daySel.addEventListener('change', updateHidden);
+
+    rebuildDays();
+
+    if (initYear && initMonth && initDay) {
+      yearSel.value = String(initYear);
+      monthSel.value = String(initMonth);
+      rebuildDays();
+      daySel.value = String(initDay);
+      updateHidden();
+    }
+  }
+
+  setupOptionalJalaliPickerSalesReport('sr_date_from', 'sr_from_day', 'sr_from_month', 'sr_from_year', '{{ date_from|default:"" }}');
+  setupOptionalJalaliPickerSalesReport('sr_date_to', 'sr_to_day', 'sr_to_month', 'sr_to_year', '{{ date_to|default:"" }}');
+</script>
+{% endblock %}

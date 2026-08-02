@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}مشتریان{% endblock %}
+{% block page_title %}مشتریان{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-people"></i></span>
+    مشتریان
+    <span class="erp-badge erp-badge-info" style="font-size:13px;">{{ total }}</span>
+  </h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'customers:customer_debts' %}" class="btn-erp btn-erp-outline">
+      <i class="bi bi-exclamation-triangle"></i> گزارش بدهی‌ها
+    </a>
+    <a href="{% url 'customers:customer_create' %}" class="btn-erp btn-erp-primary">
+      <i class="bi bi-person-plus"></i> مشتری جدید
+    </a>
+  </div>
+</div>
+
+<!-- Total Debt Banner -->
+{% if total_debt_summary > 0 %}
+<div class="erp-alert erp-alert-warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  مجموع بدهی مشتریان:
+  <strong style="direction:ltr; display:inline-block;">
+    {{ total_debt_summary|floatformat:0|intcomma }} افغانی
+  </strong>
+</div>
+{% endif %}
+
+<!-- Search -->
+<div class="erp-card mb-4">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex gap-3 align-items-center">
+      <div style="flex:1;position:relative;">
+        <i class="bi bi-search"
+           style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" name="q" value="{{ search }}" class="erp-form-control"
+               style="padding-right:38px;" placeholder="نام، تلفن، آدرس مشتری...">
+      </div>
+      <button type="submit" class="btn-erp btn-erp-primary">جستجو</button>
+      {% if search %}
+        <a href="{% url 'customers:customer_list' %}" class="btn-erp btn-erp-outline">پاک</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="erp-card">
+  <div class="erp-card-body" style="padding:0;">
+    <div class="erp-table-wrapper">
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>نام مشتری</th>
+            <th>تلفن</th>
+            <th>آدرس</th>
+            <th style="text-align:left;">بدهی (افغانی)</th>
+            <th style="text-align:left;">بدهی (دالر)</th>
+            <th style="text-align:center;">وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:12px;">{{ forloop.counter }}</td>
+            <td>
+              <a href="{% url 'customers:customer_detail' customer.pk %}"
+                 style="font-weight:700;color:var(--text-primary);text-decoration:none;">
+                {{ customer.name }}
+              </a>
+            </td>
+            <td style="direction:ltr;font-size:13px;">
+              {{ customer.phone|default:"—" }}
+            </td>
+            <td style="font-size:12px;color:var(--text-muted);">
+              {{ customer.address|default:"—"|truncatechars:35 }}
+            </td>
+
+            <!-- AFN debt / advance -->
+            <td style="text-align:left;">
+              {% with debt=customer.total_debt advance=customer.advance_balance %}
+                {% if debt > 0 %}
+                  <span style="color:var(--accent-red);font-weight:700;direction:ltr;">
+                    {{ debt|floatformat:0|intcomma }} ؋
+                  </span>
+                {% elif advance > 0 %}
+                  <span style="color:var(--accent-green);font-weight:600;direction:ltr;">
+                    پیش‌پرداخت: {{ advance|floatformat:0|intcomma }} ؋
+                  </span>
+                {% else %}
+                  <span class="erp-badge erp-badge-success">تسویه</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+
+            <!-- USD debt / advance -->
+            <td style="text-align:left;">
+              {% with debt_usd=customer.total_debt_usd advance_usd=customer.advance_balance_usd %}
+                {% if debt_usd > 0 %}
+                  <span style="color:var(--accent-red);font-weight:700;direction:ltr;">
+                    {{ debt_usd|floatformat:2|intcomma }} $
+                  </span>
+                {% elif advance_usd > 0 %}
+                  <span style="color:var(--accent-green);font-weight:600;direction:ltr;">
+                    پیش‌پرداخت: {{ advance_usd|floatformat:2|intcomma }} $
+                  </span>
+                {% else %}
+                  <span class="erp-badge erp-badge-success">تسویه</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+
+            <td style="text-align:center;">
+              {% if customer.is_active %}
+                <span class="erp-badge erp-badge-success">فعال</span>
+              {% else %}
+                <span class="erp-badge erp-badge-gray">غیرفعال</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'customers:customer_detail' customer.pk %}"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="جزئیات">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{% url 'customers:customer_statement' customer.pk %}"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="کارنامه">
+                  <i class="bi bi-journal-text"></i>
+                </a>
+                <a href="{% url 'customers:customer_edit' customer.pk %}"
+                   class="btn-erp btn-erp-outline"
+                   style="padding:4px 10px;font-size:12px;" title="ویرایش">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="post" action="{% url 'customers:customer_delete' customer.pk %}"
+                      onsubmit="return confirm('مشتری «{{ customer.name }}» حذف شود؟')">
+                  {% csrf_token %}
+                  <button class="btn-erp btn-erp-danger"
+                          style="padding:4px 10px;font-size:12px;" title="حذف">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-people"></i>
+                <h5>هیچ مشتری‌ای یافت نشد</h5>
+                <a href="{% url 'customers:customer_create' %}"
+                   class="btn-erp btn-erp-primary mt-2">
+                  اولین مشتری را ثبت کنید
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if customers.has_other_pages %}
+    <div class="d-flex justify-content-center p-3">
+      {% include 'partials/pagination.html' with page=customers %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

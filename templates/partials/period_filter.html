@@ -1,0 +1,134 @@
+<div class="erp-card mb-4 no-print">
+  <div class="erp-card-body" style="padding:14px 20px;">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+      <!-- Period Buttons -->
+      <div class="d-flex gap-1 flex-wrap">
+        {% for val, label in periods %}
+          <a href="?period={{ val }}"
+             class="btn-erp {% if period == val %}btn-erp-primary{% else %}btn-erp-outline{% endif %}"
+             style="padding:6px 14px;font-size:12px;">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </div>
+
+      <!-- Custom Range -->
+      <div class="d-flex gap-2 align-items-center me-auto">
+        <select id="pf_from_day" class="erp-form-control" style="width:70px;"></select>
+        <select id="pf_from_month" class="erp-form-control" style="width:100px;"></select>
+        <select id="pf_from_year" class="erp-form-control" style="width:85px;"></select>
+        <input type="hidden" name="date_from" id="pf_date_from" value="{{ date_from }}">
+        <span style="color:var(--text-muted);">تا</span>
+        <select id="pf_to_day" class="erp-form-control" style="width:70px;"></select>
+        <select id="pf_to_month" class="erp-form-control" style="width:100px;"></select>
+        <select id="pf_to_year" class="erp-form-control" style="width:85px;"></select>
+        <input type="hidden" name="date_to" id="pf_date_to" value="{{ date_to }}">
+        <input type="hidden" name="period" id="period-input" value="{{ period }}">
+        <button type="submit" class="btn-erp btn-erp-primary"
+                style="padding:7px 14px;font-size:12px;">
+          اعمال
+        </button>
+      </div>
+
+      <button type="button" onclick="window.print()"
+              class="btn-erp btn-erp-outline" style="font-size:12px;">
+        <i class="bi bi-printer"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  const JALALI_MONTHS_PeriodFilter = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+  function jalaliIsLeapPeriodFilter(year) {
+    const cycle = year - (year > 0 ? 474 : 473);
+    const y = 474 + (((cycle % 2820) + 2820) % 2820);
+    return (((y + 38) * 682) % 2816) < 682;
+  }
+
+  function jalaliMonthLengthPeriodFilter(year, month) {
+    if (month <= 6) return 31;
+    if (month <= 11) return 30;
+    return jalaliIsLeapPeriodFilter(year) ? 30 : 29;
+  }
+
+  function setupOptionalJalaliPickerPeriodFilter(hiddenId, dayId, monthId, yearId, initialValue) {
+    const currentYear = {{ current_jalali_year }};
+    const daySel = document.getElementById(dayId);
+    const monthSel = document.getElementById(monthId);
+    const yearSel = document.getElementById(yearId);
+    const hiddenInput = document.getElementById(hiddenId);
+
+    let initYear = null, initMonth = null, initDay = null;
+    if (initialValue) {
+      const parts = initialValue.split('/');
+      if (parts.length === 3) {
+        initYear = parseInt(parts[0], 10);
+        initMonth = parseInt(parts[1], 10);
+        initDay = parseInt(parts[2], 10);
+      }
+    }
+
+    let minYear = currentYear - 15;
+    let maxYear = currentYear + 15;
+    if (initYear && initYear < minYear) minYear = initYear;
+    if (initYear && initYear > maxYear) maxYear = initYear;
+
+    monthSel.innerHTML = '<option value="">ماه</option>';
+    JALALI_MONTHS_PeriodFilter.forEach((name, idx) => {
+      monthSel.innerHTML += `<option value="${idx + 1}">${name}</option>`;
+    });
+
+    yearSel.innerHTML = '<option value="">سال</option>';
+    for (let y = minYear; y <= maxYear; y++) {
+      yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+
+    function rebuildDays() {
+      const y = parseInt(yearSel.value, 10);
+      const m = parseInt(monthSel.value, 10);
+      const prevDay = daySel.value;
+      const maxDay = (y && m) ? jalaliMonthLengthPeriodFilter(y, m) : 31;
+      daySel.innerHTML = '<option value="">روز</option>';
+      for (let d = 1; d <= maxDay; d++) {
+        daySel.innerHTML += `<option value="${d}">${d}</option>`;
+      }
+      if (prevDay && parseInt(prevDay, 10) <= maxDay) {
+        daySel.value = prevDay;
+      }
+    }
+
+    function updateHidden() {
+      const d = daySel.value, m = monthSel.value, y = yearSel.value;
+      if (d && m && y) {
+        hiddenInput.value = `${y}/${('0' + m).slice(-2)}/${('0' + d).slice(-2)}`;
+      } else {
+        hiddenInput.value = '';
+      }
+      // Any manual edit to the range means this is now a custom filter.
+      document.getElementById('period-input').value = 'custom';
+    }
+
+    monthSel.addEventListener('change', () => { rebuildDays(); updateHidden(); });
+    yearSel.addEventListener('change', () => { rebuildDays(); updateHidden(); });
+    daySel.addEventListener('change', updateHidden);
+
+    rebuildDays();
+
+    if (initYear && initMonth && initDay) {
+      yearSel.value = String(initYear);
+      monthSel.value = String(initMonth);
+      rebuildDays();
+      daySel.value = String(initDay);
+      // Prefill only — don't mark as 'custom' just for restoring existing state.
+      const d = daySel.value, m = monthSel.value, y = yearSel.value;
+      hiddenInput.value = `${y}/${('0' + m).slice(-2)}/${('0' + d).slice(-2)}`;
+    }
+  }
+
+  setupOptionalJalaliPickerPeriodFilter('pf_date_from', 'pf_from_day', 'pf_from_month', 'pf_from_year', '{{ date_from|default:"" }}');
+  setupOptionalJalaliPickerPeriodFilter('pf_date_to', 'pf_to_day', 'pf_to_month', 'pf_to_year', '{{ date_to|default:"" }}');
+})();
+</script>

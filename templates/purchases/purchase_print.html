@@ -1,0 +1,209 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>فاکتور خرید {{ invoice.invoice_number }}</title>
+  <style>
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('{% static "fonts/Vazirmatn/Vazirmatn-Regular.woff2" %}') format('woff2');
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: 'Vazirmatn';
+      src: url('{% static "fonts/Vazirmatn/Vazirmatn-Bold.woff2" %}') format('woff2');
+      font-weight: 700;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 13px; color: #1a2332;
+      background: white; padding: 20px; direction: rtl;
+    }
+    .invoice-wrapper {
+      max-width: 800px; margin: 0 auto;
+      border: 2px solid #1e2a3a; border-radius: 8px; overflow: hidden;
+    }
+    .invoice-header {
+      background: #1e2a3a; color: white;
+      padding: 20px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .invoice-header h1 { font-size: 18px; margin-bottom: 4px; }
+    .invoice-header p { font-size: 11px; opacity: .8; margin-bottom: 2px; }
+    .inv-number { font-size: 20px; font-weight: 700; direction: ltr; }
+    .info-section {
+      display: flex; padding: 16px 24px;
+      background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+      gap: 20px;
+    }
+    .info-box { flex: 1; }
+    .info-label {
+      font-size: 10px; color: #64748b;
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .info-value { font-size: 14px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f1f5f9; padding: 10px 14px;
+      font-size: 11px; font-weight: 600; color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    .totals-section {
+      display: flex; justify-content: flex-end;
+      padding: 16px 24px; border-top: 2px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .totals-table { width: 260px; }
+    .totals-table td { padding: 5px 10px; font-size: 13px; }
+    .totals-table .label { color: #64748b; text-align: right; }
+    .totals-table .value { text-align: left; direction: ltr; font-weight: 600; }
+    .totals-table .grand td {
+      font-size: 16px; font-weight: 800; padding-top: 10px;
+      border-top: 2px solid #1e2a3a;
+    }
+    .remaining td { color: #dc2626; font-weight: 700; }
+    .paid-row td { color: #059669; }
+    .invoice-footer {
+      background: #1e2a3a; color: #94a3b8;
+      padding: 10px 24px; font-size: 11px;
+      display: flex; justify-content: space-between;
+    }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+      @page { margin: 10mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print"
+     style="text-align:center;margin-bottom:16px;display:flex;gap:10px;justify-content:center;">
+  <button onclick="window.print()"
+          style="background:#1e2a3a;color:white;border:none;padding:10px 28px;
+                 border-radius:8px;font-family:'Vazirmatn',sans-serif;
+                 font-size:14px;cursor:pointer;">
+    🖨️ پرینت
+  </button>
+  <button onclick="window.close()"
+          style="background:#64748b;color:white;border:none;padding:10px 28px;
+                 border-radius:8px;font-family:'Vazirmatn',sans-serif;
+                 font-size:14px;cursor:pointer;">
+    بستن
+  </button>
+</div>
+
+<div class="invoice-wrapper">
+
+  <div class="info-section">
+    <div class="info-box">
+      <div class="info-label">تامین‌کننده</div>
+      <div class="info-value" style="font-size:16px;">{{ invoice.supplier.name }}</div>
+      {% if invoice.supplier.phone %}
+        <div style="font-size:12px;color:#64748b;direction:ltr;">
+          {{ invoice.supplier.phone }}
+        </div>
+      {% endif %}
+    </div>
+    {% if invoice.supplier_invoice_number %}
+    <div class="info-box" style="text-align:left;">
+      <div class="info-label">فاکتور تامین‌کننده</div>
+      <div class="info-value" style="direction:ltr;">
+        {{ invoice.supplier_invoice_number }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Items -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>محصول</th>
+        <th style="text-align:center;">مقدار</th>
+        <th style="text-align:left;">قیمت خرید</th>
+        <th>بچ</th>
+        <th>انقضا</th>
+        <th style="text-align:left;">مجموع</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in invoice.items.all %}
+      <tr>
+        <td style="color:#64748b;font-size:12px;">{{ forloop.counter }}</td>
+        <td style="font-weight:600;">{{ item.product.name }}</td>
+        <td style="text-align:center;">
+          {{ item.quantity|floatformat:"-3" }}
+          <span style="font-size:11px;color:#64748b;">
+            {{ item.product.unit.abbreviation }}
+          </span>
+        </td>
+        <td style="text-align:left;direction:ltr;font-weight:600;">
+          {{ item.unit_cost|floatformat:0|intcomma }} {{ currency_symbol }}
+        </td>
+        <td style="font-family:monospace;font-size:11px;color:#64748b;">
+          {% if item.batch %}{{ item.batch.batch_number }}{% else %}—{% endif %}
+        </td>
+        <td style="font-size:12px;">{{ item.expiry_date|default:"—" }}</td>
+        <td style="text-align:left;direction:ltr;font-weight:700;">
+          {{ item.line_total|floatformat:0|intcomma }} {{ currency_symbol }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <div class="totals-section">
+    <table class="totals-table">
+      {% if invoice.discount_amount > 0 %}
+      <tr>
+        <td class="label">جمع قبل تخفیف</td>
+        <td class="value">{{ invoice.subtotal|floatformat:0|intcomma }} {{ currency_symbol }}</td>
+      </tr>
+      <tr>
+        <td class="label">تخفیف</td>
+        <td class="value" style="color:#d97706;">
+          - {{ invoice.discount_amount|floatformat:0|intcomma }} {{ currency_symbol }}
+        </td>
+      </tr>
+      {% endif %}
+      <tr class="grand">
+        <td class="label">مبلغ کل</td>
+        <td class="value">{{ invoice.total_amount|floatformat:0|intcomma }} {{ currency_symbol }}</td>
+      </tr>
+      <tr class="paid-row">
+        <td class="label">پرداخت شده</td>
+        <td class="value">{{ invoice.paid_amount|floatformat:0|intcomma }} {{ currency_symbol }}</td>
+      </tr>
+      {% if invoice.remaining_amount > 0 %}
+      <tr class="remaining">
+        <td class="label">باقی‌مانده</td>
+        <td class="value">{{ invoice.remaining_amount|floatformat:0|intcomma }} {{ currency_symbol }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+
+  {% if invoice.notes %}
+  <div style="padding:12px 24px;border-top:1px solid #e2e8f0;
+              font-size:12px;color:#64748b;">
+    <strong>یادداشت:</strong> {{ invoice.notes }}
+  </div>
+  {% endif %}
+
+  <div class="invoice-footer">
+    <span>قنادی تیموریان — هرات</span>
+    <span style="direction:ltr;">0790090032 | 0705294629</span>
+  </div>
+
+</div>
+</body>
+</html>

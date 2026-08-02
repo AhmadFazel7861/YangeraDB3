@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-currency-exchange"></i></span>
+    {{ page_title }}
+  </h1>
+  <a href="{% url 'currency:currency_list' %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="erp-card">
+      <div class="erp-card-header">
+        <h5 class="erp-card-title">
+          <span class="card-icon"
+                style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+            <i class="bi bi-currency-exchange"></i>
+          </span>
+          اطلاعات نرخ ارز
+        </h5>
+      </div>
+      <div class="erp-card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.currency.label }} *</label>
+              {{ form.currency }}
+              {% if form.currency.errors %}
+                <div class="erp-field-error">{{ form.currency.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.rate_date.label }} *</label>
+              {{ form.rate_date }}
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.rate_to_afn.label }} *</label>
+              {{ form.rate_to_afn }}
+              {% if form.rate_to_afn.errors %}
+                <div class="erp-field-error">{{ form.rate_to_afn.errors.0 }}</div>
+              {% endif %}
+              <small style="font-size:11px;color:var(--text-muted);">
+                مثال: اگر ۱ دالر = ۷۳.۵۰ افغانی است، عدد ۷۳.۵۰ را وارد کنید
+              </small>
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.buy_rate.label }}</label>
+              {{ form.buy_rate }}
+              <small style="font-size:11px;color:var(--text-muted);">
+                برای صرافی (اختیاری)
+              </small>
+            </div>
+            <div class="col-md-6">
+              <label class="erp-label">{{ form.sell_rate.label }}</label>
+              {{ form.sell_rate }}
+              <small style="font-size:11px;color:var(--text-muted);">
+                برای صرافی (اختیاری)
+              </small>
+            </div>
+            <div class="col-12">
+              <label class="erp-label">{{ form.notes.label }}</label>
+              {{ form.notes }}
+            </div>
+          </div>
+
+          <!-- Live Preview -->
+          <div id="ratePreview"
+               style="display:none;margin-top:16px;padding:14px;
+                      background:rgba(59,130,246,.06);
+                      border:1px solid rgba(59,130,246,.15);
+                      border-radius:10px;font-size:13px;">
+            <div style="color:var(--text-muted);margin-bottom:6px;">
+              پیش‌نمایش
+            </div>
+            <div id="previewText"
+                 style="font-weight:700;color:var(--text-primary);
+                        direction:ltr;font-size:15px;">
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn-erp btn-erp-primary">
+              <i class="bi bi-check-circle"></i> {{ action }}
+            </button>
+            {% if action == 'ثبت' %}
+              <button type="submit" name="save_and_new" value="1"
+                      class="btn-erp btn-erp-outline">
+                <i class="bi bi-plus-circle"></i> ثبت و جدید
+              </button>
+            {% endif %}
+            <a href="{% url 'currency:currency_list' %}"
+               class="btn-erp btn-erp-outline">انصراف</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live preview as user types the rate
+const rateInput    = document.querySelector('[name="rate_to_afn"]');
+const currencySelect = document.querySelector('[name="currency"]');
+const preview      = document.getElementById('ratePreview');
+const previewText  = document.getElementById('previewText');
+
+function updatePreview() {
+  const rate    = parseFloat(rateInput.value);
+  const curCode = currencySelect.options[currencySelect.selectedIndex]?.text
+                    ?.split(' ')[0] || '?';
+  if (rate > 0) {
+    previewText.textContent =
+      `1 ${curCode} = ${rate.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+      })} AFN`;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+rateInput.addEventListener('input', updatePreview);
+currencySelect.addEventListener('change', updatePreview);
+updatePreview();
+</script>
+{% endblock %}

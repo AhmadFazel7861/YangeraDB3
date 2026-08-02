@@ -1,0 +1,768 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load jalali_tags %}
+{% block title %}ویرایش فاکتور خرید{% endblock %}
+{% block page_title %}ویرایش فاکتور خرید{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">
+    <span class="page-icon"><i class="bi bi-pencil-square"></i></span>
+    ویرایش فاکتور خرید {{ invoice.invoice_number }}
+  </h1>
+  <a href="{% url 'purchases:purchase_detail' invoice.pk %}" class="btn-erp btn-erp-outline">
+    <i class="bi bi-arrow-right"></i> بازگشت
+  </a>
+</div>
+
+<form method="post" id="purchaseForm">
+  {% csrf_token %}
+  <input type="hidden" name="items_json" id="itemsJson">
+
+  <div class="row g-4">
+
+    <!-- RIGHT: Header + Items -->
+    <div class="col-lg-8">
+
+      <!-- Header -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon"
+                  style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+              <i class="bi bi-info-circle"></i>
+            </span>
+            اطلاعات خرید
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="erp-label">تامین‌کننده *</label>
+              <select name="supplier_id" id="supplierSelect"
+                      class="erp-form-control" required>
+                <option value="">-- تامین‌کننده را انتخاب کنید --</option>
+                {% for s in suppliers %}
+                  <option value="{{ s.pk }}" {% if s.pk == invoice.supplier.pk %}selected{% endif %}>
+                    {{ s.name }}{% if s.phone %} — {{ s.phone }}{% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="erp-label">انبار *</label>
+              <select name="warehouse_id" class="erp-form-control" required>
+                {% for w in warehouses %}
+                  <option value="{{ w.pk }}" {% if w.pk == invoice.warehouse.pk %}selected{% endif %}>
+                    {{ w.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">تاریخ *</label>
+              <div style="display:flex;gap:4px;" dir="ltr">
+                <select id="pDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="pMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="pYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              <input type="hidden" name="purchase_date" id="purchaseDateHidden"
+                     value="{{ invoice.purchase_date|jalali }}" required>
+            </div>
+            <div class="col-md-3">
+              <label class="erp-label">واحد پول *</label>
+              <select name="currency" id="currencySelect" class="erp-form-control" required>
+                {% for val, label in currency_choices %}
+                  <option value="{{ val }}" {% if val == invoice.currency %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="erp-label">شماره فاکتور تامین‌کننده</label>
+              <input type="text" name="supplier_invoice_number"
+                     value="{{ invoice.supplier_invoice_number }}"
+                     class="erp-form-control" style="direction:ltr;"
+                     placeholder="اختیاری">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add / Edit Item -->
+      <div class="erp-card mb-4">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon" id="addItemIcon"
+                  style="background:rgba(16,185,129,.1);color:var(--accent-green);">
+              <i class="bi bi-plus-circle" id="addItemIconI"></i>
+            </span>
+            <span id="addItemTitle">افزودن محصول</span>
+          </h5>
+          <button type="button" id="cancelEditBtn"
+                  onclick="cancelEdit()"
+                  style="display:none;"
+                  class="btn-erp btn-erp-outline">
+            <i class="bi bi-x"></i> لغو ویرایش
+          </button>
+        </div>
+        <div class="erp-card-body">
+          <input type="hidden" id="editingIndex" value="">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="erp-label">محصول</label>
+              <select id="productSelect" class="erp-form-control">
+                <option value="">-- محصول --</option>
+                {% for p in products %}
+                  <option value="{{ p.pk }}"
+                          data-unit="{{ p.unit.abbreviation|default:'' }}"
+                          data-name="{{ p.name }}">
+                    {{ p.name }} ({{ p.unit.abbreviation }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="erp-label">مقدار</label>
+              <input type="number" id="itemQty" class="erp-form-control"
+                     step="0.001" min="0.001" placeholder="0"
+                     style="direction:ltr;">
+            </div>
+
+            <!-- AFN price input -->
+            <div class="col-md-2" id="itemCostAFNWrapper"
+                 style="display:{% if invoice.currency == 'USD' %}none{% else %}block{% endif %};">
+              <label class="erp-label">
+                قیمت خرید
+                <span style="font-size:11px;color:var(--text-muted);">(افغانی)</span>
+              </label>
+              <div style="position:relative;">
+                <input type="number" id="itemCostAFN" class="erp-form-control"
+                       step="1" min="0" placeholder="0"
+                       style="direction:ltr;padding-left:28px;">
+                <span style="position:absolute;left:10px;top:50%;
+                             transform:translateY(-50%);font-size:12px;
+                             color:var(--text-muted);">؋</span>
+              </div>
+            </div>
+
+            <!-- USD price input -->
+            <div class="col-md-2" id="itemCostUSDWrapper"
+                 style="display:{% if invoice.currency == 'USD' %}block{% else %}none{% endif %};">
+              <label class="erp-label">
+                قیمت خرید
+                <span style="font-size:11px;color:var(--text-muted);">(دالر)</span>
+              </label>
+              <div style="position:relative;">
+                <input type="number" id="itemCostUSD" class="erp-form-control"
+                       step="0.01" min="0" placeholder="0"
+                       style="direction:ltr;padding-left:28px;">
+                <span style="position:absolute;left:10px;top:50%;
+                             transform:translateY(-50%);font-size:12px;
+                             color:var(--text-muted);">$</span>
+              </div>
+            </div>
+
+            <div class="col-md-2">
+              <label class="erp-label">انقضا</label>
+              <div class="d-flex gap-1" dir="ltr">
+                <select id="itemExpDay" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="itemExpMonth" class="erp-form-control" style="padding:8px 4px;"></select>
+                <select id="itemExpYear" class="erp-form-control" style="padding:8px 4px;"></select>
+              </div>
+              <input type="hidden" id="itemExpiryHidden">
+            </div>
+            <div class="col-md-2">
+              <button type="button" id="addItemBtn" onclick="addOrUpdateItem()"
+                      class="btn-erp btn-erp-success w-100"
+                      style="padding:10px;">
+                <i class="bi bi-plus-lg" id="addItemBtnIcon"></i>
+                <span id="addItemBtnText">افزودن</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="erp-card">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon"
+                  style="background:rgba(59,130,246,.1);color:var(--accent-blue);">
+              <i class="bi bi-list-ol"></i>
+            </span>
+            ردیف‌های فاکتور
+          </h5>
+          <span id="itemCountBadge" class="erp-badge erp-badge-gray">۰ ردیف</span>
+        </div>
+        <div class="erp-card-body" style="padding:0;">
+          <div class="erp-table-wrapper">
+            <table class="erp-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>محصول</th>
+                  <th style="text-align:center;">مقدار</th>
+                  <th style="text-align:left;">قیمت خرید</th>
+                  <th>انقضا</th>
+                  <th style="text-align:left;">مجموع</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="itemsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- LEFT: Summary -->
+    <div class="col-lg-4">
+      <div class="erp-card mb-4" style="position:sticky;top:80px;">
+        <div class="erp-card-header">
+          <h5 class="erp-card-title">
+            <span class="card-icon"
+                  style="background:rgba(139,92,246,.1);color:var(--accent-purple);">
+              <i class="bi bi-calculator"></i>
+            </span>
+            خلاصه فاکتور
+          </h5>
+        </div>
+        <div class="erp-card-body">
+          <div style="font-size:13px;">
+            <div class="d-flex justify-content-between mb-2">
+              <span style="color:var(--text-muted);">جمع کل</span>
+              <strong id="summaryTotal" style="direction:ltr;">
+                0 {{ invoice.currency_symbol }}
+              </strong>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="mb-3">
+            <label class="erp-label">مبلغ پرداخت</label>
+            <input type="number" name="paid_amount" id="paidAmount"
+                   class="erp-form-control" style="direction:ltr;"
+                   min="0" step="1" value="{{ invoice.paid_amount|stringformat:'f' }}">
+          </div>
+          <div class="mb-3">
+            <label class="erp-label">روش پرداخت</label>
+            <select name="payment_method" id="paymentMethodSelect" class="erp-form-control">
+              {% for val, label in payment_methods %}
+                <option value="{{ val }}" {% if val == invoice.payment_method %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3" id="bankerSelectWrapper" style="display:none;">
+            <label class="erp-label">صراف *</label>
+            <select name="banker_id" id="bankerSelect" class="erp-form-control">
+              <option value="">-- صراف را انتخاب کنید --</option>
+              {% for b in bankers %}
+                <option value="{{ b.pk }}"
+                        data-balance-afn="{{ b.balance_afn }}"
+                        data-balance-usd="{{ b.balance_usd }}"
+                        {% if invoice.banker and b.pk == invoice.banker.pk %}selected{% endif %}>
+                  {{ b.name }}
+                </option>
+              {% endfor %}
+            </select>
+            <div id="bankerBalanceInfo" class="mt-1"
+                 style="font-size:12px;color:var(--text-muted);"></div>
+          </div>
+
+          <div id="remainingInfo" class="mb-3 p-3 rounded"
+               style="background:rgba(239,68,68,.06);
+                      border:1px solid rgba(239,68,68,.15);display:none;">
+            <div style="font-size:12px;color:var(--text-muted);">
+              باقی‌مانده (بدهی به تامین‌کننده)
+            </div>
+            <div id="summaryRemaining"
+                 style="font-size:16px;font-weight:800;
+                        color:var(--accent-red);direction:ltr;">
+              0 {{ invoice.currency_symbol }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="erp-label">یادداشت</label>
+            <textarea name="notes" class="erp-form-control" rows="2"
+                      placeholder="اختیاری...">{{ invoice.notes }}</textarea>
+          </div>
+
+          <button type="submit" id="submitBtn"
+                  class="btn-erp btn-erp-primary w-100"
+                  style="padding:14px;font-size:15px;">
+            <i class="bi bi-check-circle"></i> ذخیره تغییرات
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let purchaseItems = {{ existing_items_json|safe }};
+
+// ── Currency helpers ─────────────────────────────────────────
+function currencySymbol() {
+  return document.getElementById('currencySelect').value === 'USD' ? '$' : '؋';
+}
+
+function isUSD() {
+  return document.getElementById('currencySelect').value === 'USD';
+}
+
+function getActiveCostInput() {
+  return isUSD()
+    ? document.getElementById('itemCostUSD')
+    : document.getElementById('itemCostAFN');
+}
+
+function toggleCostInputs() {
+  const usd = isUSD();
+  document.getElementById('itemCostAFNWrapper').style.display = usd ? 'none' : 'block';
+  document.getElementById('itemCostUSDWrapper').style.display = usd ? 'block' : 'none';
+}
+
+document.getElementById('currencySelect').addEventListener('change', function () {
+  toggleCostInputs();
+  renderItems();
+  updateSummary();
+  updateBankerBalanceInfo();
+});
+
+// ── Edit mode ─────────────────────────────────────────────────
+function startEdit(index) {
+  const item = purchaseItems[index];
+  document.getElementById('editingIndex').value = index;
+
+  const productSel = document.getElementById('productSelect');
+  for (let i = 0; i < productSel.options.length; i++) {
+    if (productSel.options[i].value === String(item.product_id)) {
+      productSel.selectedIndex = i; break;
+    }
+  }
+  document.getElementById('itemQty').value = item.quantity;
+  setOptionalJalaliPickerValue('itemExpDay', 'itemExpMonth', 'itemExpYear', 'itemExpiryHidden', item.expiry_date);
+
+  if (isUSD()) {
+    document.getElementById('itemCostUSD').value = item.unit_cost;
+  } else {
+    document.getElementById('itemCostAFN').value = item.unit_cost;
+  }
+
+  document.getElementById('addItemTitle').textContent     = 'ویرایش ردیف';
+  document.getElementById('addItemIconI').className       = 'bi bi-pencil';
+  document.getElementById('addItemIcon').style.background = 'rgba(245,158,11,.1)';
+  document.getElementById('addItemIcon').style.color      = 'var(--accent-orange)';
+  document.getElementById('addItemBtnIcon').className     = 'bi bi-check-lg';
+  document.getElementById('addItemBtnText').textContent   = 'ذخیره';
+  document.getElementById('addItemBtn').className         = 'btn-erp btn-erp-warning w-100';
+  document.getElementById('addItemBtn').style.padding     = '10px';
+  document.getElementById('cancelEditBtn').style.display  = 'inline-flex';
+
+  document.getElementById('addItemTitle').closest('.erp-card')
+    .scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function cancelEdit() {
+  document.getElementById('editingIndex').value  = '';
+  document.getElementById('productSelect').value = '';
+  document.getElementById('itemQty').value       = '';
+  document.getElementById('itemCostAFN').value   = '';
+  document.getElementById('itemCostUSD').value   = '';
+  resetOptionalJalaliPicker('itemExpDay', 'itemExpMonth', 'itemExpYear', 'itemExpiryHidden');
+
+  document.getElementById('addItemTitle').textContent     = 'افزودن محصول';
+  document.getElementById('addItemIconI').className       = 'bi bi-plus-circle';
+  document.getElementById('addItemIcon').style.background = 'rgba(16,185,129,.1)';
+  document.getElementById('addItemIcon').style.color      = 'var(--accent-green)';
+  document.getElementById('addItemBtnIcon').className     = 'bi bi-plus-lg';
+  document.getElementById('addItemBtnText').textContent   = 'افزودن';
+  document.getElementById('addItemBtn').className         = 'btn-erp btn-erp-success w-100';
+  document.getElementById('addItemBtn').style.padding     = '10px';
+  document.getElementById('cancelEditBtn').style.display  = 'none';
+
+  renderItems();
+}
+
+function addOrUpdateItem() {
+  const editingIndexVal = document.getElementById('editingIndex').value;
+  const isEditing       = editingIndexVal !== '';
+  const idx             = isEditing ? parseInt(editingIndexVal) : -1;
+
+  const productSel  = document.getElementById('productSelect');
+  const productId   = productSel.value;
+  const productName = productSel.options[productSel.selectedIndex]?.dataset?.name || '';
+  const unit        = productSel.options[productSel.selectedIndex]?.dataset?.unit || '';
+  const qty         = parseFloat(document.getElementById('itemQty').value);
+  const cost        = parseFloat(getActiveCostInput().value);
+  const expiry      = document.getElementById('itemExpiryHidden').value;
+
+  if (!productId)              { alert('محصول را انتخاب کنید'); return; }
+  if (!qty || qty <= 0)        { alert('مقدار را وارد کنید'); return; }
+  if (isNaN(cost) || cost < 0) { alert('قیمت خرید را وارد کنید'); return; }
+
+  const newItem = {
+    product_id:       productId,
+    product_name:     productName,
+    unit:             unit,
+    quantity:         qty,
+    unit_cost:        cost,
+    discount_percent: 0,
+    expiry_date:      expiry || null,
+    exchange_rate:    1,   // always 1 — no conversion, USD stays USD
+    line_total:       qty * cost,
+  };
+
+  if (isEditing) {
+    purchaseItems[idx] = newItem;
+  } else {
+    purchaseItems.push(newItem);
+  }
+
+  renderItems();
+  updateSummary();
+  cancelEdit();
+}
+
+function removeItem(index) {
+  const editingIndexVal = document.getElementById('editingIndex').value;
+  purchaseItems.splice(index, 1);
+  renderItems();
+  updateSummary();
+  if (editingIndexVal !== '' && parseInt(editingIndexVal) === index) cancelEdit();
+}
+
+function renderItems() {
+  const tbody           = document.getElementById('itemsTableBody');
+  const badge           = document.getElementById('itemCountBadge');
+  const editingIndexVal = document.getElementById('editingIndex').value;
+  const sym             = currencySymbol();
+
+  if (purchaseItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state" style="padding:30px;">
+        <i class="bi bi-cart-plus"></i>
+        <h5 style="font-size:14px;">محصول اضافه کنید</h5>
+      </div></td></tr>`;
+    badge.textContent = '۰ ردیف';
+    return;
+  }
+
+  badge.textContent = purchaseItems.length + ' ردیف';
+  tbody.innerHTML = purchaseItems.map((item, i) => `
+    <tr style="${editingIndexVal !== '' && parseInt(editingIndexVal) === i
+                  ? 'background:rgba(245,158,11,.06);' : ''}">
+      <td style="color:var(--text-muted);font-size:12px;">${i + 1}</td>
+      <td>
+        <strong>${item.product_name}</strong>
+        <div style="font-size:11px;color:var(--text-muted);">${item.unit}</div>
+      </td>
+      <td style="text-align:center;font-weight:700;">${item.quantity.toLocaleString()}</td>
+      <td style="text-align:left;direction:ltr;">
+        ${item.unit_cost.toLocaleString()} ${sym}
+      </td>
+      <td style="font-size:12px;color:var(--text-muted);">${item.expiry_date || '—'}</td>
+      <td style="text-align:left;direction:ltr;font-weight:700;color:var(--accent-blue);">
+        ${item.line_total.toLocaleString('en-US', {minimumFractionDigits: 0})} ${sym}
+      </td>
+      <td>
+        <button type="button" onclick="startEdit(${i})"
+                class="btn-erp btn-erp-outline"
+                style="padding:3px 8px;font-size:12px;margin-left:4px;"
+                title="ویرایش ردیف">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button type="button" onclick="removeItem(${i})"
+                class="btn-erp btn-erp-danger"
+                style="padding:3px 8px;font-size:12px;"
+                title="حذف ردیف">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>`
+  ).join('');
+}
+
+function updateSummary() {
+  const sym       = currencySymbol();
+  const total     = purchaseItems.reduce((s, i) => s + i.line_total, 0);
+  const paid      = parseFloat(document.getElementById('paidAmount').value) || 0;
+  const remaining = Math.max(0, total - paid);
+
+  document.getElementById('summaryTotal').textContent =
+    total.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ' + sym;
+
+  const remInfo = document.getElementById('remainingInfo');
+  if (remaining > 0) {
+    document.getElementById('summaryRemaining').textContent =
+      remaining.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ' + sym;
+    remInfo.style.display = 'block';
+  } else {
+    remInfo.style.display = 'none';
+  }
+}
+
+document.getElementById('paidAmount').addEventListener('input', updateSummary);
+
+// ── Banker / صراف toggle ─────────────────────────────────────
+const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+const bankerSelectWrapper = document.getElementById('bankerSelectWrapper');
+const bankerSelect        = document.getElementById('bankerSelect');
+
+function toggleBankerField() {
+  if (paymentMethodSelect.value === 'saraf') {
+    bankerSelectWrapper.style.display = 'block';
+    bankerSelect.required = true;
+  } else {
+    bankerSelectWrapper.style.display = 'none';
+    bankerSelect.required = false;
+  }
+}
+paymentMethodSelect.addEventListener('change', toggleBankerField);
+
+function updateBankerBalanceInfo() {
+  const opt    = bankerSelect.options[bankerSelect.selectedIndex];
+  const infoEl = document.getElementById('bankerBalanceInfo');
+  if (!opt || !opt.value) { infoEl.textContent = ''; return; }
+  const sym     = currencySymbol();
+  const balance = isUSD()
+    ? parseFloat(opt.dataset.balanceUsd)
+    : parseFloat(opt.dataset.balanceAfn);
+  if (balance < 0) {
+    infoEl.style.color = 'var(--accent-red)';
+    infoEl.textContent =
+      `بدهی ما به این صراف: ${Math.abs(balance).toLocaleString('en-US')} ${sym}`;
+  } else {
+    infoEl.style.color = 'var(--text-muted)';
+    infoEl.textContent =
+      `مانده این صراف: ${balance.toLocaleString('en-US')} ${sym}`;
+  }
+}
+bankerSelect.addEventListener('change', updateBankerBalanceInfo);
+
+// ── Form submit ───────────────────────────────────────────────
+document.getElementById('purchaseForm').addEventListener('submit', function (e) {
+  if (purchaseItems.length === 0) {
+    e.preventDefault();
+    alert('فاکتور خرید باید حداقل یک ردیف داشته باشد.');
+    return;
+  }
+  if (paymentMethodSelect.value === 'saraf' && !bankerSelect.value) {
+    e.preventDefault();
+    alert('برای پرداخت از طریق صراف، صراف را انتخاب کنید.');
+    return;
+  }
+  document.getElementById('itemsJson').value = JSON.stringify(purchaseItems);
+});
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+document.getElementById('itemQty').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); getActiveCostInput().focus(); }
+});
+document.getElementById('itemCostAFN').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); addOrUpdateItem(); }
+});
+document.getElementById('itemCostUSD').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); addOrUpdateItem(); }
+});
+
+// ── Jalali date dropdown picker (required — purchase_date) ──
+const JALALI_MONTHS = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function jalaliIsLeap(year) {
+  const cycle = ((year - (year > 0 ? 474 : 473)) % 2820 + 2820) % 2820;
+  const r = cycle % 128 === 0 ? 0 : 1 + ((cycle % 128 - 1) % 4 !== undefined ? 0 : 0);
+  const table = [1,5,9,13,17,22,26,30,34,38,42,46,50,54,58,62,66,70,74,78,82,86,90,94,98,102,106,110,114,118,122,126];
+  return table.includes((cycle + 1) % 128) || table.includes(cycle % 128);
+}
+
+function jalaliMonthLength(year, month) {
+  if (month <= 6) return 31;
+  if (month <= 11) return 30;
+  return jalaliIsLeap(year) ? 30 : 29;
+}
+
+function setupJalaliPicker(hiddenInputId, dayId, monthId, yearId) {
+  const hidden = document.getElementById(hiddenInputId);
+  const daySel = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel = document.getElementById(yearId);
+
+  const currentYear = {{ current_jalali_year }};
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parseInt(parts[0]) || currentYear;
+  const initMonth = parseInt(parts[1]) || 1;
+  const initDay   = parseInt(parts[2]) || 1;
+
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear < rangeStart) rangeStart = initYear;
+  if (initYear > rangeEnd) rangeEnd = initYear;
+
+  yearSel.innerHTML = '';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '';
+  JALALI_MONTHS.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    const y = parseInt(yearSel.value);
+    const m = parseInt(monthSel.value);
+    const maxDay = jalaliMonthLength(y, m);
+    daySel.innerHTML = '';
+    for (let d = 1; d <= maxDay; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    hidden.value = `${yearSel.value}/${String(monthSel.value).padStart(2,'0')}/${String(daySel.value).padStart(2,'0')}`;
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  monthSel.addEventListener('change', () => { rebuildDays(parseInt(daySel.value)); updateHidden(); });
+  daySel.addEventListener('change', updateHidden);
+}
+
+// ── Optional Jalali dropdown picker (item انقضا — blank = no date) ──
+const JALALI_MONTHS_BATCH = ['حمل','ثور','جوزا','سرطان','اسد','سنبله','میزان','عقرب','قوس','جدی','دلو','حوت'];
+
+function setupOptionalJalaliPickerBatch(hiddenId, dayId, monthId, yearId) {
+  const hidden   = document.getElementById(hiddenId);
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+
+  const parts = (hidden.value || '').split('/');
+  const initYear  = parts.length === 3 ? parseInt(parts[0]) : '';
+  const initMonth = parts.length === 3 ? parseInt(parts[1]) : '';
+  const initDay   = parts.length === 3 ? parseInt(parts[2]) : '';
+
+  const currentYear = {{ current_jalali_year }};
+  let rangeStart = currentYear - 15;
+  let rangeEnd   = currentYear + 15;
+  if (initYear) {
+    rangeStart = Math.min(rangeStart, initYear);
+    rangeEnd   = Math.max(rangeEnd, initYear);
+  }
+
+  yearSel.innerHTML = '<option value="">سال</option>';
+  for (let y = rangeStart; y <= rangeEnd; y++) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === initYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.innerHTML = '<option value="">ماه</option>';
+  JALALI_MONTHS_BATCH.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i + 1 === initMonth) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  function rebuildDays(selectedDay) {
+    daySel.innerHTML = '<option value="">روز</option>';
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === selectedDay) opt.selected = true;
+      daySel.appendChild(opt);
+    }
+  }
+  rebuildDays(initDay);
+
+  function updateHidden() {
+    const y = yearSel.value, m = monthSel.value, d = daySel.value;
+    if (y && m && d) {
+      hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+  updateHidden();
+
+  yearSel.addEventListener('change', updateHidden);
+  monthSel.addEventListener('change', updateHidden);
+  daySel.addEventListener('change', updateHidden);
+}
+
+// ── Small helpers to reuse the optional picker's dropdowns for a
+//    repeating add/edit-item row (reset on cancel / set when editing) ──
+function resetOptionalJalaliPicker(dayId, monthId, yearId, hiddenId) {
+  document.getElementById(dayId).value   = '';
+  document.getElementById(monthId).value = '';
+  document.getElementById(yearId).value  = '';
+  document.getElementById(hiddenId).value = '';
+}
+
+function setOptionalJalaliPickerValue(dayId, monthId, yearId, hiddenId, jalaliStr) {
+  const daySel   = document.getElementById(dayId);
+  const monthSel = document.getElementById(monthId);
+  const yearSel  = document.getElementById(yearId);
+  const hidden   = document.getElementById(hiddenId);
+
+  if (!jalaliStr) {
+    resetOptionalJalaliPicker(dayId, monthId, yearId, hiddenId);
+    return;
+  }
+  const parts = jalaliStr.split('/');
+  if (parts.length !== 3) {
+    resetOptionalJalaliPicker(dayId, monthId, yearId, hiddenId);
+    return;
+  }
+  const y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
+
+  let hasYearOption = false;
+  for (let i = 0; i < yearSel.options.length; i++) {
+    if (parseInt(yearSel.options[i].value) === y) { hasYearOption = true; break; }
+  }
+  if (!hasYearOption) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSel.appendChild(opt);
+  }
+
+  yearSel.value  = y;
+  monthSel.value = m;
+  daySel.value   = d;
+  hidden.value = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+toggleBankerField();
+updateBankerBalanceInfo();
+toggleCostInputs();
+setupJalaliPicker('purchaseDateHidden', 'pDay', 'pMonth', 'pYear');
+setupOptionalJalaliPickerBatch('itemExpiryHidden', 'itemExpDay', 'itemExpMonth', 'itemExpYear');
+renderItems();
+updateSummary();
+</script>
+{% endblock %}
